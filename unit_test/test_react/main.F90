@@ -30,6 +30,7 @@ program test_react
   use fabio_module
   use build_info_module
   use parallel, only : parallel_wtime
+  use linked_list_module
 
   implicit none
 
@@ -58,10 +59,16 @@ program test_react
   real(kind=dp_t), pointer :: sp(:,:,:,:)
 
   real(kind=dp_t), &
-#ifdef CUDA
-       managed, &
-#endif
+! #ifdef CUDA
+!        managed, &
+! #endif
        allocatable :: state(:,:,:,:)
+
+  type(cell_t)          :: trunk
+  type(cell_t), pointer :: aptr, bptr
+  integer :: flatdim
+  real(kind=dp_t) :: tscratch
+  real(kind=dp_t), allocatable :: flatstate(:,:)
 
   integer, &
 #ifdef CUDA
@@ -194,27 +201,96 @@ program test_react
         enddo
      enddo
 
+     ! Second, construct a flattened, temperature-sorted input state
+     flatdim = (hi(3)-lo(3)+1)*(hi(2)-lo(2)+1)*(hi(1)-lo(1)+1)
+     
+     ! Do we need all of n_plot_comps?
+     allocate( flatstate(flatdim, pf % n_plot_comps) )
+
+     do kk = lo(3), hi(3)
+        do jj = lo(2), hi(2)
+           do ii = lo(1), hi(1)
+              ! write(*,*) '(i,j,k): ', ii, jj, kk
+              tscratch = state(ii,jj,kk,pf % itemp)
+              if ( associated(trunk % first_child) ) then
+                 ! There exists a child cell
+                 aptr => trunk % first_child
+                 do while ( associated(aptr) )
+                    if ( tscratch .ge. aptr % data % T ) then
+                       ! Add before current cell
+                       call aptr % new_before(bptr)
+                       if ( .not. associated(bptr % prev) ) then
+                          trunk % first_child => bptr
+                       end if
+                       bptr % data % T = tscratch
+                       bptr % data % ni = ii
+                       bptr % data % nj = jj
+                       bptr % data % nk = kk
+                       ! write(*,*) 'Making new cell BEFORE'
+                       exit
+                    else if ( .not. associated(aptr % next) ) then
+                       ! Add after current cell
+                       call aptr % new_after(bptr)
+                       if ( .not. associated(bptr % next) ) then
+                          trunk % last_child => bptr
+                       end if
+                       bptr % data % T = tscratch
+                       bptr % data % ni = ii
+                       bptr % data % nj = jj
+                       bptr % data % nk = kk
+                       ! write(*,*) 'Making new cell AFTER'
+                       exit
+                    else
+                       aptr => aptr % next
+                    end if
+                 end do
+              else
+                 ! Create first child cell
+                 call trunk % create_only_child(bptr)
+                 bptr % data % T = tscratch
+                 bptr % data % ni = ii
+                 bptr % data % nj = jj
+                 bptr % data % nk = kk
+                 ! write(*,*) 'Created first child cell'
+              end if
+           end do
+        end do
+     end do
+
+     ! write(*,*) 'Done with filling trunk'
+
+     ! Now fill flatstate
+     ii = 1
+     aptr => trunk % first_child
+     do while ( associated(aptr) )
+        do jj = 1, pf % n_plot_comps
+           flatstate(ii, jj) = state(aptr % data % ni, &
+                                     aptr % data % nj, &
+                                     aptr % data % nk, &
+                                     jj)
+        end do
+        aptr => aptr % next
+        ii = ii + 1
+     end do
+     
+     if ( ii-1 /= flatdim ) then
+        write(*,*) 'ERROR: flatstate not filled with number of zones in state!'
+     end if
+
      ! Set up a timer for the burn.
      start_time = parallel_wtime()
 
      write(*,*) 'lo = ', lo
      write(*,*) 'hi = ', hi
+     write(*,*) 'flattened size = ', flatdim
      
 #ifdef CUDA
      ! Set up CUDA parameters
-     cuThreadBlock = dim3(4, 4, 4)
-     cuGrid = dim3(&
-          ceiling(real(hi(1)-lo(1)+1)/cuThreadBlock%x), &
-          ceiling(real(hi(2)-lo(2)+1)/cuThreadBlock%y), &
-          ceiling(real(hi(3)-lo(3)+1)/cuThreadBlock%z))
+     cuThreadBlock = dim3(64)
+     cuGrid = ceiling(real(flatdim)/cuThreadBlock)
 
-     write(*,*) 'cuThreadBlock % x = ', cuThreadBlock % x
-     write(*,*) 'cuThreadBlock % y = ', cuThreadBlock % y
-     write(*,*) 'cuThreadBlock % z = ', cuThreadBlock % z
-
-     write(*,*) 'cuGrid % x = ', cuGrid % x
-     write(*,*) 'cuGrid % y = ', cuGrid % y
-     write(*,*) 'cuGrid % z = ', cuGrid % z
+     write(*,*) 'cuThreadBlock = ', cuThreadBlock
+     write(*,*) 'cuGrid = ', cuGrid
 
      ! Uncomment to configure Stack Size Limit
      ! stacksize = 64000
@@ -222,26 +298,39 @@ program test_react
      ! write(*,*) 'limiting stack size to ', stacksize, ' with return code ', istate
 
      ! React the zones using CUDA
-
-     ! Uncomment to manually set ThreadBlock and Grid dimensions
-     ! cuThreadBlock = dim3(16, 16, 16)
-     ! cuGrid = dim3(1, 1, 1)
-     call react_zones<<<cuGrid,cuThreadBlock>>>(state, pfidx, lo, hi)
+     call react_zones<<<cuGrid,cuThreadBlock>>>(flatstate, pfidx, flatdim)
 #else
-     call react_zones(state, pfidx, lo, hi)
+     call react_zones(flatstate, pfidx, flatdim)
 #endif
 
      !! Do reduction on statistics
      ! n_rhs_avg = n_rhs_avg + burn_state_out % n_rhs
      ! n_rhs_min = min(n_rhs_min, burn_state_out % n_rhs)
      ! n_rhs_max = max(n_rhs_max, burn_state_out % n_rhs)
-     
-     sp(:,:,:,:) = state(:,:,:,:)
 
      ! End the timer and print the results.     
      end_time = parallel_wtime()
+     
+     ! Fill state with flattened data
+     ii = 1
+     aptr => trunk % first_child
+     do while ( associated(aptr) )
+        do jj = 1, pf % n_plot_comps
+           state(aptr % data % ni, &
+                 aptr % data % nj, &
+                 aptr % data % nk, &
+                 jj) = flatstate(ii, jj)
+        end do
+        aptr => aptr % next
+        ii = ii + 1
+     end do
+     
+     sp(:,:,:,:) = state(:,:,:,:)
 
-     print *, "Execution time: ", end_time - start_time
+     print *, "Data transfer + Burn time: ", end_time - start_time
+
+     ! Free linked list memory
+     call trunk % delete_children
      
   enddo
 
