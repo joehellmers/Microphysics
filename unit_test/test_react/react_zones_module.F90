@@ -33,7 +33,7 @@ contains
   subroutine react_zones(state, pfidx, sdim)
     implicit none
   
-    integer :: sdim
+    integer, value  :: sdim
     type(pfidx_t)   :: pfidx
     real(kind=dp_t) &
 #ifdef CUDA
@@ -44,7 +44,7 @@ contains
     integer         :: ii, j    
 
 #ifdef CUDA    
-    ii = (blockIdx%x - 1) * blockDim % x + threadIdx % x - 1
+    ii = (blockIdx%x - 1) * blockDim % x + threadIdx % x
     if (ii <= sdim) then
 #else
     !$OMP PARALLEL DO PRIVATE(ii,j) &

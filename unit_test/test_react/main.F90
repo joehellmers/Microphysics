@@ -58,17 +58,17 @@ program test_react
 
   real(kind=dp_t), pointer :: sp(:,:,:,:)
 
-  real(kind=dp_t), &
-! #ifdef CUDA
-!        managed, &
-! #endif
-       allocatable :: state(:,:,:,:)
+  real(kind=dp_t), allocatable :: state(:,:,:,:)
 
   type(cell_t)          :: trunk
   type(cell_t), pointer :: aptr, bptr
   integer :: flatdim
   real(kind=dp_t) :: tscratch
-  real(kind=dp_t), allocatable :: flatstate(:,:)
+  real(kind=dp_t), &
+#ifdef CUDA
+       managed, &
+#endif       
+       allocatable :: flatstate(:,:)
 
   integer, &
 #ifdef CUDA
@@ -96,7 +96,7 @@ program test_react
 #ifdef CUDA
   integer :: istate
   integer(c_size_t) :: stacksize
-  type(dim3)    :: cuGrid, cuThreadBlock
+  integer :: cuGrid, cuThreadBlock
 #endif
   
   call boxlib_initialize()
@@ -205,7 +205,7 @@ program test_react
      flatdim = (hi(3)-lo(3)+1)*(hi(2)-lo(2)+1)*(hi(1)-lo(1)+1)
      
      ! Do we need all of n_plot_comps?
-     allocate( flatstate(flatdim, pf % n_plot_comps) )
+     allocate(flatstate(flatdim, pf % n_plot_comps))
 
      do kk = lo(3), hi(3)
         do jj = lo(2), hi(2)
@@ -286,7 +286,7 @@ program test_react
      
 #ifdef CUDA
      ! Set up CUDA parameters
-     cuThreadBlock = dim3(64)
+     cuThreadBlock = 64
      cuGrid = ceiling(real(flatdim)/cuThreadBlock)
 
      write(*,*) 'cuThreadBlock = ', cuThreadBlock
