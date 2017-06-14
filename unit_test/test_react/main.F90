@@ -19,7 +19,8 @@ program test_react
   use variables, only: init_variables, finalize_variables, plot_t
   use probin_module, only: dens_min, dens_max, &
                            temp_min, temp_max, test_set, run_prefix, &
-                           small_temp, small_dens, do_acc
+                           small_temp, small_dens, do_acc, &
+                           sort_grid
   use runtime_init_module
   use burn_type_module
   use actual_burner_module, only : actual_burner
@@ -45,7 +46,7 @@ program test_react
   type(ml_boxarray) :: mba
 
   integer :: i, j, n
-  integer :: ii, jj, kk
+  integer :: ii, jj, kk, mm
   integer :: nrho, nT, nX
 
   integer :: dm, nlevs
@@ -62,7 +63,7 @@ program test_react
 
   type(cell_t)          :: trunk
   type(cell_t), pointer :: aptr, bptr
-  integer :: flatdim
+  integer :: flatdim, flatdimx, flatdimy, flatdimz
   real(kind=dp_t) :: tscratch
   real(kind=dp_t), &
 #ifdef CUDA
@@ -201,88 +202,111 @@ program test_react
         enddo
      enddo
 
+     start_time = parallel_wtime()
+     
      ! Second, construct a flattened, temperature-sorted input state
-     flatdim = (hi(3)-lo(3)+1)*(hi(2)-lo(2)+1)*(hi(1)-lo(1)+1)
+     flatdimx = hi(1)-lo(1)+1
+     flatdimy = hi(2)-lo(2)+1
+     flatdimz = hi(3)-lo(3)+1     
+     flatdim = flatdimx * flatdimy * flatdimz
      
      ! Do we need all of n_plot_comps?
      allocate(flatstate(flatdim, pf % n_plot_comps))
 
-     do kk = lo(3), hi(3)
-        do jj = lo(2), hi(2)
-           do ii = lo(1), hi(1)
-              ! write(*,*) '(i,j,k): ', ii, jj, kk
-              tscratch = state(ii,jj,kk,pf % itemp)
-              if ( associated(trunk % first_child) ) then
-                 ! There exists a child cell
-                 aptr => trunk % first_child
-                 do while ( associated(aptr) )
-                    if ( tscratch .ge. aptr % data % T ) then
-                       ! Add before current cell
-                       call aptr % new_before(bptr)
-                       if ( .not. associated(bptr % prev) ) then
-                          trunk % first_child => bptr
+
+     ! If we need to sort the flattened state, do this
+     if (sort_grid .eq. 1) then
+        do kk = lo(3), hi(3)
+           do jj = lo(2), hi(2)
+              do ii = lo(1), hi(1)
+                 ! write(*,*) '(i,j,k): ', ii, jj, kk
+                 tscratch = state(ii,jj,kk,pf % itemp)
+                 if ( associated(trunk % first_child) ) then
+                    ! There exists a child cell
+                    aptr => trunk % first_child
+                    do while ( associated(aptr) )
+                       if ( tscratch .ge. aptr % data % T ) then
+                          ! Add before current cell
+                          call aptr % new_before(bptr)
+                          if ( .not. associated(bptr % prev) ) then
+                             trunk % first_child => bptr
+                          end if
+                          bptr % data % T = tscratch
+                          bptr % data % ni = ii
+                          bptr % data % nj = jj
+                          bptr % data % nk = kk
+                          ! write(*,*) 'Making new cell BEFORE'
+                          exit
+                       else if ( .not. associated(aptr % next) ) then
+                          ! Add after current cell
+                          call aptr % new_after(bptr)
+                          if ( .not. associated(bptr % next) ) then
+                             trunk % last_child => bptr
+                          end if
+                          bptr % data % T = tscratch
+                          bptr % data % ni = ii
+                          bptr % data % nj = jj
+                          bptr % data % nk = kk
+                          ! write(*,*) 'Making new cell AFTER'
+                          exit
+                       else
+                          aptr => aptr % next
                        end if
-                       bptr % data % T = tscratch
-                       bptr % data % ni = ii
-                       bptr % data % nj = jj
-                       bptr % data % nk = kk
-                       ! write(*,*) 'Making new cell BEFORE'
-                       exit
-                    else if ( .not. associated(aptr % next) ) then
-                       ! Add after current cell
-                       call aptr % new_after(bptr)
-                       if ( .not. associated(bptr % next) ) then
-                          trunk % last_child => bptr
-                       end if
-                       bptr % data % T = tscratch
-                       bptr % data % ni = ii
-                       bptr % data % nj = jj
-                       bptr % data % nk = kk
-                       ! write(*,*) 'Making new cell AFTER'
-                       exit
-                    else
-                       aptr => aptr % next
-                    end if
-                 end do
-              else
-                 ! Create first child cell
-                 call trunk % create_only_child(bptr)
-                 bptr % data % T = tscratch
-                 bptr % data % ni = ii
-                 bptr % data % nj = jj
-                 bptr % data % nk = kk
-                 ! write(*,*) 'Created first child cell'
-              end if
+                    end do
+                 else
+                    ! Create first child cell
+                    call trunk % create_only_child(bptr)
+                    bptr % data % T = tscratch
+                    bptr % data % ni = ii
+                    bptr % data % nj = jj
+                    bptr % data % nk = kk
+                    ! write(*,*) 'Created first child cell'
+                 end if
+              end do
            end do
         end do
-     end do
 
-     ! write(*,*) 'Done with filling trunk'
+        ! write(*,*) 'Done with filling trunk'
 
-     ! Now fill flatstate
-     ii = 1
-     aptr => trunk % first_child
-     do while ( associated(aptr) )
-        do jj = 1, pf % n_plot_comps
-           flatstate(ii, jj) = state(aptr % data % ni, &
-                                     aptr % data % nj, &
-                                     aptr % data % nk, &
-                                     jj)
+        ! Now fill flatstate
+        ii = 1
+        aptr => trunk % first_child
+        do while ( associated(aptr) )
+           do jj = 1, pf % n_plot_comps
+              flatstate(ii, jj) = state(aptr % data % ni, &
+                   aptr % data % nj, &
+                   aptr % data % nk, &
+                   jj)
+           end do
+           aptr => aptr % next
+           ii = ii + 1
         end do
-        aptr => aptr % next
-        ii = ii + 1
-     end do
-     
-     if ( ii-1 /= flatdim ) then
-        write(*,*) 'ERROR: flatstate not filled with number of zones in state!'
-     end if
 
-     ! Set up a timer for the burn.
-     start_time = parallel_wtime()
+        ! Halt on error
+        if ( ii-1 /= flatdim ) then
+           write(*,*) 'ERROR: flatstate not filled with the zones in state!'
+           stop
+        end if
+
+        end_time = parallel_wtime()
+        print *, "State flatten + sort time: ", end_time - start_time        
+     else
+        ! Directly copy 3-D state into the flattened state
+        print *, "Attempting state reshape from spatial dimensions ", &
+             flatdimx, "x", flatdimy, "x", flatdimz, " to ", flatdim
+        flatstate = reshape(state(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), :), &
+                            [flatdim, pf % n_plot_comps])
+        print *, "Finished reshape."
+        end_time = parallel_wtime()
+        print *, "State reshape time: ", end_time - start_time
+     endif
 
      write(*,*) 'lo = ', lo
      write(*,*) 'hi = ', hi
      write(*,*) 'flattened size = ', flatdim
+     
+     ! Set up a timer for the burn.
+     start_time = parallel_wtime()
      
 #ifdef CUDA
      ! Set up CUDA parameters
@@ -308,25 +332,32 @@ program test_react
      ! n_rhs_min = min(n_rhs_min, burn_state_out % n_rhs)
      ! n_rhs_max = max(n_rhs_max, burn_state_out % n_rhs)
 
-     ! End the timer and print the results.     
-     end_time = parallel_wtime()
-     
      ! Fill state with flattened data
-     ii = 1
-     aptr => trunk % first_child
-     do while ( associated(aptr) )
-        do jj = 1, pf % n_plot_comps
-           state(aptr % data % ni, &
-                 aptr % data % nj, &
-                 aptr % data % nk, &
-                 jj) = flatstate(ii, jj)
+     if (sort_grid .eq. 1) then
+        ii = 1
+        aptr => trunk % first_child
+        do while ( associated(aptr) )
+           do jj = 1, pf % n_plot_comps
+              state(aptr % data % ni, &
+                   aptr % data % nj, &
+                   aptr % data % nk, &
+                   jj) = flatstate(ii, jj)
+           end do
+           aptr => aptr % next
+           ii = ii + 1
         end do
-        aptr => aptr % next
-        ii = ii + 1
-     end do
+     else
+        state(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), :) = reshape(flatstate, [flatdimx, &
+                                                                              flatdimy, &
+                                                                              flatdimz, &
+                                                                              pf % n_plot_comps])
+     end if
      
      sp(:,:,:,:) = state(:,:,:,:)
 
+     ! End the timer and print the results.     
+     end_time = parallel_wtime()
+     
      print *, "Data transfer + Burn time: ", end_time - start_time
 
      ! Free linked list memory
