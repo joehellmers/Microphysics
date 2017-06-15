@@ -1,5 +1,6 @@
 module linked_list_module
 
+  use bl_types, only: dp_t
   use linked_list_data, only: cell_data_t
   
   implicit none
@@ -139,5 +140,186 @@ contains
        cell_ptr => cell_next
     end do
   end subroutine delete_children
+
+  
+  function get_flatdim_2d(lo, hi) result(flatdim)
+    integer :: lo(2), hi(2), flatdim
+    flatdim = (hi(1)-lo(1)+1) * (hi(2)-lo(2)+1)
+  end function get_flatdim_2d
+
+  
+  function get_flatdim_3d(lo, hi) result(flatdim)
+    integer :: lo(3), hi(3), flatdim
+    flatdim = (hi(1)-lo(1)+1) * (hi(2)-lo(2)+1) * (hi(3)-lo(3)+1)
+  end function get_flatdim_3d
+
+  
+  subroutine restore_2d(state2d, ncomps, trunk, flatstate)
+    type(cell_t), intent(inout) :: trunk
+    double precision, intent(inout) :: state2d(:,:,:)
+    double precision, intent(in) :: flatstate(:,:)
+    integer :: ncomps, ii, jj
+    type(cell_t), pointer :: aptr
+    ii = 1
+    aptr => trunk % first_child
+    do while ( associated(aptr) )
+       do jj = 1, ncomps
+          state2d(aptr % data % ni, aptr % data % nj, jj) = flatstate(ii, jj)
+       end do
+       aptr => aptr % next
+       ii = ii + 1
+    end do
+  end subroutine restore_2d
+
+    
+  subroutine sort_and_flatten_2d(state2d, lo, hi, ncomps, &
+                                 isort, trunk, flatstate)
+    type(cell_t), intent(inout) :: trunk
+    double precision, intent(in) :: state2d(:,:,:)
+    double precision, intent(inout) :: flatstate(:,:)
+    integer :: lo(3), hi(3), ncomps, ii, jj, isort
+    type(cell_t), pointer :: aptr, bptr
+    real(kind=dp_t) :: tscratch
+
+    do jj = lo(2), hi(2)
+       do ii = lo(1), hi(1)
+          ! write(*,*) '(i,j): ', ii, jj
+          tscratch = state2d(ii,jj,isort)
+          if ( associated(trunk % first_child) ) then
+             ! There exists a child cell
+             aptr => trunk % first_child
+             do while ( associated(aptr) )
+                if ( tscratch .ge. aptr % data % T ) then
+                   ! Add before current cell
+                   call aptr % new_before(bptr)
+                   if ( .not. associated(bptr % prev) ) then
+                      trunk % first_child => bptr
+                   end if
+                   bptr % data % T = tscratch
+                   bptr % data % ni = ii
+                   bptr % data % nj = jj
+                   bptr % data % nk = 1
+                   ! write(*,*) 'Making new cell BEFORE'
+                   exit
+                else if ( .not. associated(aptr % next) ) then
+                   ! Add after current cell
+                   call aptr % new_after(bptr)
+                   if ( .not. associated(bptr % next) ) then
+                      trunk % last_child => bptr
+                   end if
+                   bptr % data % T = tscratch
+                   bptr % data % ni = ii
+                   bptr % data % nj = jj
+                   bptr % data % nk = 1
+                   ! write(*,*) 'Making new cell AFTER'
+                   exit
+                else
+                   aptr => aptr % next
+                end if
+             end do
+          else
+             ! Create first child cell
+             call trunk % create_only_child(bptr)
+             bptr % data % T = tscratch
+             bptr % data % ni = ii
+             bptr % data % nj = jj
+             bptr % data % nk = 1
+             ! write(*,*) 'Created first child cell'
+          end if
+       end do
+    end do
+
+    ! write(*,*) 'Done with filling trunk'
+
+    ! Now fill flatstate
+    ii = 1
+    aptr => trunk % first_child
+    do while ( associated(aptr) )
+       do jj = 1, ncomps
+          flatstate(ii, jj) = state2d(aptr % data % ni, &
+               aptr % data % nj, &
+               jj)
+       end do
+       aptr => aptr % next
+       ii = ii + 1
+    end do
+  end subroutine sort_and_flatten_2d
+
+  
+  subroutine sort_and_flatten_3d(state3d, lo, hi, ncomps, &
+                                  isort, trunk, flatstate)
+    type(cell_t), intent(inout) :: trunk
+    double precision, intent(in) :: state3d(:,:,:,:)
+    double precision, intent(inout) :: flatstate(:,:)
+    integer :: lo(3), hi(3), ncomps, ii, jj, kk, isort
+    type(cell_t), pointer :: aptr, bptr
+    real(kind=dp_t) :: tscratch
+
+    do kk = lo(3), hi(3)
+       do jj = lo(2), hi(2)
+          do ii = lo(1), hi(1)
+             ! write(*,*) '(i,j,k): ', ii, jj, kk
+             tscratch = state3d(ii,jj,kk,isort)
+             if ( associated(trunk % first_child) ) then
+                ! There exists a child cell
+                aptr => trunk % first_child
+                do while ( associated(aptr) )
+                   if ( tscratch .ge. aptr % data % T ) then
+                      ! Add before current cell
+                      call aptr % new_before(bptr)
+                      if ( .not. associated(bptr % prev) ) then
+                         trunk % first_child => bptr
+                      end if
+                      bptr % data % T = tscratch
+                      bptr % data % ni = ii
+                      bptr % data % nj = jj
+                      bptr % data % nk = kk
+                      ! write(*,*) 'Making new cell BEFORE'
+                      exit
+                   else if ( .not. associated(aptr % next) ) then
+                      ! Add after current cell
+                      call aptr % new_after(bptr)
+                      if ( .not. associated(bptr % next) ) then
+                         trunk % last_child => bptr
+                      end if
+                      bptr % data % T = tscratch
+                      bptr % data % ni = ii
+                      bptr % data % nj = jj
+                      bptr % data % nk = kk
+                      ! write(*,*) 'Making new cell AFTER'
+                      exit
+                   else
+                      aptr => aptr % next
+                   end if
+                end do
+             else
+                ! Create first child cell
+                call trunk % create_only_child(bptr)
+                bptr % data % T = tscratch
+                bptr % data % ni = ii
+                bptr % data % nj = jj
+                bptr % data % nk = kk
+                ! write(*,*) 'Created first child cell'
+             end if
+          end do
+       end do
+    end do
+
+    ! write(*,*) 'Done with filling trunk'
+
+    ! Now fill flatstate
+    ii = 1
+    aptr => trunk % first_child
+    do while ( associated(aptr) )
+       do jj = 1, ncomps
+          flatstate(ii, jj) = state3d(aptr % data % ni, &
+               aptr % data % nj, &
+               aptr % data % nk, &
+               jj)
+       end do
+       aptr => aptr % next
+       ii = ii + 1
+    end do
+  end subroutine sort_and_flatten_3d
 
 end module linked_list_module

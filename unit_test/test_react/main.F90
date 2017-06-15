@@ -5,8 +5,10 @@ program test_react
 #ifdef CUDA
   use cudafor
   use iso_c_binding, only: c_size_t
-#endif
+  use react_zones_module, only: pfidx_t, react_zones_flat  
+#else
   use react_zones_module, only: pfidx_t, react_zones
+#endif
   
   use BoxLib
   use bl_constants_module
@@ -61,22 +63,20 @@ program test_react
 
   real(kind=dp_t), allocatable :: state(:,:,:,:)
 
-  type(cell_t)          :: trunk
-  type(cell_t), pointer :: aptr, bptr
-  integer :: flatdim, flatdimx, flatdimy, flatdimz
-  real(kind=dp_t) :: tscratch
-  real(kind=dp_t), &
 #ifdef CUDA
-       managed, &
-#endif       
-       allocatable :: flatstate(:,:)
+  integer, parameter :: cudaNumStreams = 32
+  integer :: streamSize, istate, chunkOffset, chunkSize
+  integer(kind=cuda_stream_kind) :: streams(cudaNumStreams)
+  logical :: pinnedflag
+  integer(c_size_t) :: stacksize
+  integer :: cuGrid
+  integer :: cuThreadBlock = 64
+  type(cell_t) :: trunk
+  integer :: flatdim
+  real(kind=dp_t), allocatable, managed :: flatstate(:,:)
+#endif  
 
-  integer, &
-#ifdef CUDA
-       managed, &
-#endif
-       allocatable :: lo(:), hi(:)
-  
+  integer :: lo(MAX_SPACEDIM), hi(MAX_SPACEDIM)
   integer :: domlo(MAX_SPACEDIM), domhi(MAX_SPACEDIM)
 
   real (kind=dp_t) :: dlogrho, dlogT
@@ -93,12 +93,7 @@ program test_react
        managed, &
 #endif
        allocatable :: pfidx
-  
-#ifdef CUDA
-  integer :: istate
-  integer(c_size_t) :: stacksize
-  integer :: cuGrid, cuThreadBlock
-#endif
+
   
   call boxlib_initialize()
   call bl_prof_initialize(on = .true.)
@@ -178,10 +173,6 @@ program test_react
   n_rhs_max = -100000000
   n_rhs_min = 100000000
 
-  ! Allocate lo, hi
-  allocate(lo(MAX_SPACEDIM))
-  allocate(hi(MAX_SPACEDIM))
-  
   do i = 1, nfabs(s(n))
      sp => dataptr(s(n), i)
 
@@ -202,167 +193,74 @@ program test_react
         enddo
      enddo
 
-     start_time = parallel_wtime()
-     
-     ! Second, construct a flattened, temperature-sorted input state
-     flatdimx = hi(1)-lo(1)+1
-     flatdimy = hi(2)-lo(2)+1
-     flatdimz = hi(3)-lo(3)+1     
-     flatdim = flatdimx * flatdimy * flatdimz
-     
-     ! Do we need all of n_plot_comps?
-     allocate(flatstate(flatdim, pf % n_plot_comps))
-
-
-     ! If we need to sort the flattened state, do this
-     if (sort_grid .eq. 1) then
-        do kk = lo(3), hi(3)
-           do jj = lo(2), hi(2)
-              do ii = lo(1), hi(1)
-                 ! write(*,*) '(i,j,k): ', ii, jj, kk
-                 tscratch = state(ii,jj,kk,pf % itemp)
-                 if ( associated(trunk % first_child) ) then
-                    ! There exists a child cell
-                    aptr => trunk % first_child
-                    do while ( associated(aptr) )
-                       if ( tscratch .ge. aptr % data % T ) then
-                          ! Add before current cell
-                          call aptr % new_before(bptr)
-                          if ( .not. associated(bptr % prev) ) then
-                             trunk % first_child => bptr
-                          end if
-                          bptr % data % T = tscratch
-                          bptr % data % ni = ii
-                          bptr % data % nj = jj
-                          bptr % data % nk = kk
-                          ! write(*,*) 'Making new cell BEFORE'
-                          exit
-                       else if ( .not. associated(aptr % next) ) then
-                          ! Add after current cell
-                          call aptr % new_after(bptr)
-                          if ( .not. associated(bptr % next) ) then
-                             trunk % last_child => bptr
-                          end if
-                          bptr % data % T = tscratch
-                          bptr % data % ni = ii
-                          bptr % data % nj = jj
-                          bptr % data % nk = kk
-                          ! write(*,*) 'Making new cell AFTER'
-                          exit
-                       else
-                          aptr => aptr % next
-                       end if
-                    end do
-                 else
-                    ! Create first child cell
-                    call trunk % create_only_child(bptr)
-                    bptr % data % T = tscratch
-                    bptr % data % ni = ii
-                    bptr % data % nj = jj
-                    bptr % data % nk = kk
-                    ! write(*,*) 'Created first child cell'
-                 end if
-              end do
-           end do
-        end do
-
-        ! write(*,*) 'Done with filling trunk'
-
-        ! Now fill flatstate
-        ii = 1
-        aptr => trunk % first_child
-        do while ( associated(aptr) )
-           do jj = 1, pf % n_plot_comps
-              flatstate(ii, jj) = state(aptr % data % ni, &
-                   aptr % data % nj, &
-                   aptr % data % nk, &
-                   jj)
-           end do
-           aptr => aptr % next
-           ii = ii + 1
-        end do
-
-        ! Halt on error
-        if ( ii-1 /= flatdim ) then
-           write(*,*) 'ERROR: flatstate not filled with the zones in state!'
-           stop
-        end if
-
-        end_time = parallel_wtime()
-        print *, "State flatten + sort time: ", end_time - start_time        
-     else
-        ! Directly copy 3-D state into the flattened state
-        print *, "Attempting state reshape from spatial dimensions ", &
-             flatdimx, "x", flatdimy, "x", flatdimz, " to ", flatdim
-        flatstate = reshape(state(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), :), &
-                            [flatdim, pf % n_plot_comps])
-        print *, "Finished reshape."
-        end_time = parallel_wtime()
-        print *, "State reshape time: ", end_time - start_time
-     endif
-
      write(*,*) 'lo = ', lo
      write(*,*) 'hi = ', hi
-     write(*,*) 'flattened size = ', flatdim
      
      ! Set up a timer for the burn.
      start_time = parallel_wtime()
      
 #ifdef CUDA
-     ! Set up CUDA parameters
-     cuThreadBlock = 64
-     cuGrid = ceiling(real(flatdim)/cuThreadBlock)
-
-     write(*,*) 'cuThreadBlock = ', cuThreadBlock
-     write(*,*) 'cuGrid = ', cuGrid
-
      ! Uncomment to configure Stack Size Limit
      ! stacksize = 64000
      ! istate = cudaDeviceSetLimit(cudaLimitStackSize, stacksize)
      ! write(*,*) 'limiting stack size to ', stacksize, ' with return code ', istate
 
-     ! React the zones using CUDA
-     call react_zones<<<cuGrid,cuThreadBlock>>>(flatstate, pfidx, flatdim)
+     flatdim = get_flatdim_2d(lo(1:2), hi(1:2))
+     print *, 'Allocating flatstate with size ', flatdim     
+     allocate(flatstate(flatdim, pf % n_plot_comps))
+
+     print *, 'Setting up CUDA'
+
+     ! Set up CUDA parameters
+     cuGrid = ceiling(real(flatdim)/cuThreadBlock)
+     
+     write(*,*) 'cuThreadBlock = ', cuThreadBlock
+     write(*,*) 'cuGrid = ', cuGrid
+
+     ! Loop over 2-D slices of the 3-D spatial state
+     do kk = lo(3), hi(3)
+        print *, 'flattening'
+        if (sort_grid .eq. 1) then
+           ! Sort 2-D slice from state into flatstate
+           call sort_and_flatten_2d(state(lo(1):hi(1), lo(2):hi(2), kk, 1:pf % n_plot_comps), &
+                                    lo(1:2), hi(1:2), pf % n_plot_comps, &
+                                    pf % itemp, trunk, flatstate)
+        else
+           ! Directly reshape 2-D slice from state into flatstate
+           flatstate = reshape(state(lo(1):hi(1),lo(2):hi(2),kk, 1:pf % n_plot_comps), &
+                               [flatdim, pf % n_plot_comps])
+        endif
+
+        print *, 'Calling react_zones_flat'
+        ! React the zones in flatstate using CUDA kernel
+        call react_zones_flat<<<cuGrid,cuThreadBlock>>>(flatstate, &
+                                                        pfidx, flatdim)
+
+        ! Save reaction results back to state
+        if (sort_grid .eq. 1) then
+           call restore_2d(state(lo(1):hi(1), lo(2):hi(2), kk, :), &
+                           pf % n_plot_comps, trunk, flatstate)
+        else
+           state(lo(1):hi(1), lo(2):hi(2), kk, :) = reshape(flatstate, &
+                                                           [hi(1)-lo(1)+1, &
+                                                            hi(2)-lo(2)+1, &
+                                                            pf % n_plot_comps])
+        end if
+
+        ! Destroy linked list contents in trunk
+        call trunk % delete_children
+     end do
 #else
-     call react_zones(flatstate, pfidx, flatdim)
+     call react_zones(state, lo, hi, pfidx)
 #endif
 
-     !! Do reduction on statistics
-     ! n_rhs_avg = n_rhs_avg + burn_state_out % n_rhs
-     ! n_rhs_min = min(n_rhs_min, burn_state_out % n_rhs)
-     ! n_rhs_max = max(n_rhs_max, burn_state_out % n_rhs)
-
-     ! Fill state with flattened data
-     if (sort_grid .eq. 1) then
-        ii = 1
-        aptr => trunk % first_child
-        do while ( associated(aptr) )
-           do jj = 1, pf % n_plot_comps
-              state(aptr % data % ni, &
-                   aptr % data % nj, &
-                   aptr % data % nk, &
-                   jj) = flatstate(ii, jj)
-           end do
-           aptr => aptr % next
-           ii = ii + 1
-        end do
-     else
-        state(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), :) = reshape(flatstate, [flatdimx, &
-                                                                              flatdimy, &
-                                                                              flatdimz, &
-                                                                              pf % n_plot_comps])
-     end if
-     
      sp(:,:,:,:) = state(:,:,:,:)
 
      ! End the timer and print the results.     
      end_time = parallel_wtime()
      
-     print *, "Data transfer + Burn time: ", end_time - start_time
+     print *, "Net burn time: ", end_time - start_time
 
-     ! Free linked list memory
-     call trunk % delete_children
-     
   enddo
 
   ! note: integer division
