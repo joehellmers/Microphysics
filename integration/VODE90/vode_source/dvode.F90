@@ -10,6 +10,7 @@ module dvode_module
   use bl_types, only: dp_t
   use blas_module
   use linpack_module
+  use gauss_jordan_module, only: gauss_jordan_solve
 #ifdef CUDA
   use cudafor
 #endif
@@ -1192,7 +1193,9 @@ contains
     IERSL = 0
     GO TO (100, 100, 300, 400, 400), vstate % MITER
 100 continue
-    CALL DGESL (WM(3:3 + vstate % N**2 - 1), vstate % N, vstate % N, IWM(31:31 + vstate % N - 1), X, 0)
+    ! Replace call to LINPACK DGESL with direct Gauss-Jordan elimination
+    ! CALL DGESL (WM(3:3 + vstate % N**2 - 1), vstate % N, vstate % N, IWM(31:31 + vstate % N - 1), X, 0)
+    call gauss_jordan_solve(WM(3:3 + vstate % N**2 - 1), X, X)
     RETURN
 
 300 continue
@@ -1414,9 +1417,11 @@ contains
           J = J + NP1
        end do
        vstate % NLU = vstate % NLU + 1
-       CALL DGEFA (rwork % WM(3:3 + vstate % N**2 - 1), vstate % N, &
-            vstate % N, IWM(31:31 + vstate % N - 1), IER)
-       IF (IER .NE. 0) IERPJ = 1
+       ! Do not do LU decomposition for MITER=1,2 because we're doing
+       ! gauss-jordan elimination instead
+       ! CALL DGEFA (rwork % WM(3:3 + vstate % N**2 - 1), vstate % N, &
+       !      vstate % N, IWM(31:31 + vstate % N - 1), IER)
+       ! IF (IER .NE. 0) IERPJ = 1
        RETURN
     ENDIF
     ! End of code block for MITER = 1 or 2. --------------------------------
