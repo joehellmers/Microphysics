@@ -1186,6 +1186,7 @@ contains
     real(dp_t) :: X(:)
     integer    :: IWM(:), IERSL
     type(dvode_t) :: vstate
+    real(dp_t) :: B(vstate % N)
 
     integer    :: I, MEBAND, ML, MU
     real(dp_t) :: DI, HRL1, PHRL1, R
@@ -1195,7 +1196,8 @@ contains
 100 continue
     ! Replace call to LINPACK DGESL with direct Gauss-Jordan elimination
     ! CALL DGESL (WM(3:3 + vstate % N**2 - 1), vstate % N, vstate % N, IWM(31:31 + vstate % N - 1), X, 0)
-    call gauss_jordan_solve(WM(3:3 + vstate % N**2 - 1), X, X)
+    B = X
+    call gauss_jordan_solve(WM(3:3 + vstate % N**2 - 1), X, B)
     RETURN
 
 300 continue
