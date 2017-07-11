@@ -1418,9 +1418,9 @@ contains
           rwork % WM(J) = rwork % WM(J) + ONE
           J = J + NP1
        end do
-       vstate % NLU = vstate % NLU + 1
        ! Do not do LU decomposition for MITER=1,2 because we're doing
-       ! gauss-jordan elimination instead
+       ! gauss-jordan elimination instead       
+       ! vstate % NLU = vstate % NLU + 1
        ! CALL DGEFA (rwork % WM(3:3 + vstate % N**2 - 1), vstate % N, &
        !      vstate % N, IWM(31:31 + vstate % N - 1), IER)
        ! IF (IER .NE. 0) IERPJ = 1
