@@ -4,6 +4,8 @@ module vode_parameters_module
 
   implicit none
 
+  integer, parameter :: grid_size = 16**3
+
   integer, parameter :: VODE_NEQS = neqs
 
   ! Our problem is stiff, so tell ODEPACK that. 21 means stiff, jacobian

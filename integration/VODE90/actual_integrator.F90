@@ -23,9 +23,6 @@ contains
 
 
   ! Main interface
-#ifdef CUDA
-  attributes(device) &
-#endif
   subroutine actual_integrator(state_in, state_out, dt, time)
 
     !$acc routine seq
@@ -43,24 +40,28 @@ contains
     use eos_type_module, only: eos_t, copy_eos_t
     use dvode_type_module, only: dvode_t
     use bl_constants_module, only: ZERO    
+    use vode_parameters_module, only: grid_size
 
     implicit none
 
     ! Input arguments
 
-    type (burn_t), intent(in   ) :: state_in
-    type (burn_t), intent(inout) :: state_out
+    type (burn_t), intent(in   ) :: state_in(grid_size)
+    type (burn_t), intent(inout) :: state_out(grid_size)
     real(dp_t),    intent(in   ) :: dt, time
 
     ! Local variables
 
-    type (eos_t) :: eos_state_in, eos_state_out, eos_state_temp
+    type (eos_t)   :: eos_state_in(grid_size), eos_state_out(grid_size), eos_state_temp
     type (dvode_t) :: dvode_state
 
     ! Work variables
 
     type(rwork_t) :: rwork
-    integer    :: iwork(VODE_LIW)
+    integer, allocatable :: iwork(:,:)
+#ifdef CUDA
+    attributes(managed) :: iwork
+#endif
 
     integer :: MF_JAC
 
@@ -74,7 +75,6 @@ contains
 
     real(dp_t) :: ener_offset
 
-
     if (jacobian == 1) then ! Analytical
        MF_JAC = MF_ANALYTIC_JAC
     else if (jacobian == 2) then ! Numerical
@@ -84,6 +84,13 @@ contains
        !CUDA
        !call bl_error("Error: unknown Jacobian mode in actual_integrator.f90.")
     endif
+
+    ! Allocate array members of dvode_t and rwork_t
+    call allocate_dvode_state(dvode_state, grid_size)
+    call allocate_rwork(rwork, grid_size)
+
+    ! Allocate integer work array
+    allocate(iwork(VODE_LIW, grid_size))
 
     ! Set the tolerances.  We will be more relaxed on the temperature
     ! since it is only used in evaluating the rates.
@@ -102,7 +109,7 @@ contains
 
     ! We want VODE to re-initialize each time we call it.
 
-    dvode_state % istate = 1
+    dvode_state % istate(:) = 1
 
     ! Initialize work arrays to zero.
     rwork % CONDOPT = ZERO
@@ -111,23 +118,25 @@ contains
     rwork % EWT  = ZERO
     rwork % SAVF = ZERO
     rwork % ACOR = ZERO    
-    iwork(:) = 0
+    iwork = 0
 
     ! Set the maximum number of steps allowed (the VODE default is 500).
 
-    iwork(6) = 150000
+    iwork(6,:) = 150000
 
     ! Disable printing of messages about T + H == T unless we are in verbose mode.
 
     if (burner_verbose) then
-       iwork(7) = 1
+       iwork(7,:) = 1
     else
-       iwork(7) = 0
+       iwork(7,:) = 0
     endif
 
     ! Initialize the integration time.
     dvode_state % T = ZERO
     dvode_state % TOUT = dt
+
+    !don - this is where I left off...
 
     ! Convert our input burn state into an EOS type.
 
@@ -357,6 +366,13 @@ contains
     endif
 #endif
     
+    ! Deallocate array members of dvode_t and rwork_t
+    call deallocate_dvode_state(dvode_state)
+    call deallocate_rwork(rwork)
+
+    ! Deallocate integer work array
+    deallocate(iwork)
+
   end subroutine actual_integrator
 
 end module actual_integrator_module

@@ -1,6 +1,7 @@
 module vode_type_module
 
-  use vode_parameters_module, only: VODE_NEQS, VODE_LMAX, VODE_LENWM
+  use cudafor
+  use vode_parameters_module, only: VODE_NEQS, VODE_LMAX, VODE_LENWM, grid_size
   use bl_types
 
   implicit none
@@ -8,15 +9,58 @@ module vode_type_module
   ! Setup a rwork derived type to hold the rwork array
   type rwork_t
      ! condopt - Conditional or optional input/output arguments to dvode
-     real(dp_t) :: condopt(4)
-     real(dp_t) :: yh(VODE_NEQS, VODE_LMAX)
-     real(dp_t) :: wm(VODE_LENWM)
-     real(dp_t) :: ewt(VODE_NEQS)
-     real(dp_t) :: savf(VODE_NEQS)
-     real(dp_t) :: acor(VODE_NEQS)
-  end type rwork_t  
+     ! First dimension is size 4
+     real(dp_t), allocatable :: condopt(:,:)
+
+     ! First dimension is size VODE_NEQS
+     ! Second dimension is size VODE_LMAX
+     real(dp_t), allocatable :: yh(:,:,:)
+
+     ! First dimension is size VODE_LENWM
+     real(dp_t), allocatable :: wm(:,:)
+
+     ! First dimension is size VODE_NEQS
+     real(dp_t), allocatable :: ewt(:,:)
+     real(dp_t), allocatable :: savf(:,:)
+     real(dp_t), allocatable :: acor(:,:)
+
+#ifdef CUDA
+     attributes(managed) :: condopt, yh, wm, ewt, savf, acor
+#endif
+  end type rwork_t
 
 contains
+
+  subroutine allocate_rwork(rwork, size)
+
+    implicit none
+
+    type (rwork_t), intent(inout) :: rwork
+    integer,        intent(in   ) :: size
+
+    allocate(rwork % condopt(4, size))
+    allocate(rwork % yh(VODE_NEQS, VODE_LMAX, size))
+    allocate(rwork % wm(VODE_LENWM, size))
+    allocate(rwork % ewt(VODE_NEQS, size))
+    allocate(rwork % savf(VODE_NEQS, size))
+    allocate(rwork % acor(VODE_NEQS, size))
+
+  end subroutine allocate_rwork
+
+  subroutine deallocate_rwork(rwork)
+
+    implicit none
+
+    type (rwork_t), intent(inout) :: rwork
+
+    deallocate(rwork % condopt)
+    deallocate(rwork % yh)
+    deallocate(rwork % wm)
+    deallocate(rwork % ewt)
+    deallocate(rwork % savf)
+    deallocate(rwork % acor)
+
+  end subroutine deallocate_rwork
   
 #ifdef CUDA
   attributes(device) &

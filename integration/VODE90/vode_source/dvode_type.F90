@@ -1,43 +1,233 @@
 module dvode_type_module
 
+  use cudafor
   use bl_types, only: dp_t
-  use vode_parameters_module, only: VODE_NEQS
-  use rpar_indices, only: n_rpar_comps
-
-  use dvode_constants_module
   
   implicit none
 
   type :: dvode_t
      ! Variables previously in common blocks
-     real(dp_t) :: HU
-     real(dp_t) :: ACNRM, CCMXJ, CONP, CRATE, DRC, EL(13)
-     real(dp_t) :: ETA, ETAMAX, H, HMIN, HMXI, HNEW, HSCAL, PRL1
-     real(dp_t) :: RC, RL1, TAU(13), TQ(5), TN, UROUND
-     integer    :: NCFN, NETF, NFE, NJE, NLU, NNI, NQU, NST     
-     integer    :: ICF, INIT, IPUP, JCUR, JSTART, JSV, KFLAG, KUTH
-     integer    :: L, LENWM
-     integer    :: LOCJS, MAXORD, METH, MITER, MSBJ, MXHNIL, MXSTEP
-     integer    :: NEWH, NEWQ, NHNIL, NQ, NQNYH, NQWAIT, NSLJ
-     integer    :: NSLP
+     real(dp_t), allocatable, dimension(:) :: ACNRM, CCMXJ, CONP, CRATE, DRC
+     real(dp_t), allocatable, dimension(:) :: ETA, ETAMAX, H, HMIN, HMXI, HNEW, HSCAL, PRL1
+     real(dp_t), allocatable, dimension(:) :: RC, RL1, TN, UROUND, HU
+     
+     ! First dimension is size 13
+     real(dp_t), allocatable, dimension(:,:) :: EL, TAU
 
-     ! Tolerances
-     real(dp_t) :: RTOL(VODE_NEQS), ATOL(VODE_NEQS)
+     ! First dimension is size 5
+     real(dp_t), allocatable, dimension(:,:) :: TQ
 
-     ! Real parameters
-     real(dp_t) :: RPAR(n_rpar_comps)
+     integer,    allocatable, dimension(:) :: NCFN, NETF, NFE, NJE, NLU, NNI, NQU, NST
+     integer,    allocatable, dimension(:) :: ICF, INIT, IPUP, JCUR, JSTART, JSV
+     integer,    allocatable, dimension(:) :: L, LENWM, KFLAG, KUTH
+     integer,    allocatable, dimension(:) :: LOCJS, MAXORD, METH, MITER, MSBJ, MXHNIL
+     integer,    allocatable, dimension(:) :: NEWH, NEWQ, NHNIL, NQ, NQNYH, NQWAIT, NSLJ
+     integer,    allocatable, dimension(:) :: NSLP, MXSTEP
+
+     ! Real parameters (first dimension is size n_rpar_comps)
+     real(dp_t), allocatable, dimension(:,:) :: RPAR
 
      ! State flag
-     integer    :: ISTATE
+     integer,    allocatable, dimension(:)   :: ISTATE
 
      ! Local time and integration end time
-     real(dp_t) :: T, TOUT
+     real(dp_t), allocatable, dimension(:)   :: T, TOUT
 
-     ! Integration vector
-     real(dp_t) :: Y(VODE_NEQS)
+     ! Integration vector (first dimension is size VODE_NEQS)
+     real(dp_t), allocatable, dimension(:,:) :: Y
+
+     ! Tolerances (size is VODE_NEQS)
+     real(dp_t), allocatable, dimension(:) :: RTOL, ATOL
+
+#ifdef CUDA
+     attributes(managed) :: ACNRM, CCMXJ, CONP, CRATE, DRC
+     attributes(managed) :: ETA, ETAMAX, H, HMIN, HMXI, HNEW, HSCAL, PRL1
+     attributes(managed) :: RC, RL1, TN, UROUND, HU
+     attributes(managed) :: EL, TAU
+     attributes(managed) :: TQ
+     attributes(managed) :: NCFN, NETF, NFE, NJE, NLU, NNI, NQU, NST
+     attributes(managed) :: ICF, INIT, IPUP, JCUR, JSTART, JSV
+     attributes(managed) :: L, LENWM, KFLAG, KUTH
+     attributes(managed) :: LOCJS, MAXORD, METH, MITER, MSBJ, MXHNIL
+     attributes(managed) :: NEWH, NEWQ, NHNIL, NQ, NQNYH, NQWAIT, NSLJ
+     attributes(managed) :: NSLP, MXSTEP, RPAR, ISTATE, T, TOUT, Y
+     attributes(managed) :: RTOL, ATOL
+#endif
   end type dvode_t
 
 contains
+
+
+  subroutine allocate_dvode_state(dvode_state, size)
+
+    use rpar_indices, only: n_rpar_comps
+
+    implicit none
+
+    type (dvode_t), intent(inout) :: dvode_state
+    integer,        intent(in   ) :: size
+
+    ! Variables previously in common blocks
+    allocate(dvode_state % ACNRM(size), &
+             dvode_state % CCMXJ(size), &
+             dvode_state % CONP(size), &
+             dvode_state % CRATE(size), &
+             dvode_state % DRC(size), &
+             dvode_state % ETA(size), &
+             dvode_state % ETAMAX(size), &
+             dvode_state % H(size), &
+             dvode_state % HMIN(size), &
+             dvode_state % HMXI(size), &
+             dvode_state % HNEW(size), &
+             dvode_state % HSCAL(size), &
+             dvode_state % PRL1(size), &
+             dvode_state % RC(size), &
+             dvode_state % RL1(size), &
+             dvode_state % TN(size), &
+             dvode_state % UROUND(size), &
+             dvode_state % HU(size), &
+             dvode_state % NCFN(size), &
+             dvode_state % NETF(size), &
+             dvode_state % NFE(size), &
+             dvode_state % NJE(size), &
+             dvode_state % NLU(size), &
+             dvode_state % NNI(size), &
+             dvode_state % NQU(size), &
+             dvode_state % NST(size), &
+             dvode_state % ICF(size), &
+             dvode_state % INIT(size), &
+             dvode_state % IPUP(size), &
+             dvode_state % JCUR(size), &
+             dvode_state % JSTART(size), &
+             dvode_state % JSV(size), &
+             dvode_state % L(size), &
+             dvode_state % LENWM(size), &
+             dvode_state % KFLAG(size), &
+             dvode_state % KUTH(size), &
+             dvode_state % LOCJS(size), &
+             dvode_state % MAXORD(size), &
+             dvode_state % METH(size), &
+             dvode_state % MITER(size), &
+             dvode_state % MSBJ(size), &
+             dvode_state % MXHNIL(size), &
+             dvode_state % NEWH(size), &
+             dvode_state % NEWQ(size), &
+             dvode_state % NHNIL(size), &
+             dvode_state % NQ(size), &
+             dvode_state % NQNYH(size), &
+             dvode_state % NQWAIT(size), &
+             dvode_state % NSLJ(size), &
+             dvode_state % NSLP(size), &
+             dvode_state % MXSTEP(size))
+     
+    ! First dimension is size 13
+    allocate(dvode_state % EL(13, size), dvode_state % TAU(13, size))
+
+    ! First dimension is size 5
+    allocate(dvode_state % TQ(5, size))
+
+    ! Real parameters (first dimension is size n_rpar_comps)
+    allocate(dvode_state % RPAR(n_rpar_comps, size))
+
+    ! State flag
+    allocate(dvode_state % ISTATE(size))
+
+    ! Local time and integration end time
+    allocate(dvode_state % T(size), &
+             dvode_state % TOUT(size))
+
+    ! Integration vector (first dimension is size VODE_NEQS)
+    allocate(dvode_state % Y(VODE_NEQS, size))
+
+    ! Tolerances (size is VODE_NEQS)
+    allocate(dvode_state % RTOL(VODE_NEQS), dvode_state % ATOL(VODE_NEQS))
+
+  end subroutine allocate_dvode_state
+
+
+  subroutine deallocate_dvode_state(dvode_state)
+
+    implicit none
+
+    type (dvode_t), intent(inout) :: dvode_state
+
+    ! Variables previously in common blocks
+    deallocate(dvode_state % ACNRM, &
+               dvode_state % CCMXJ, &
+               dvode_state % CONP, &
+               dvode_state % CRATE, &
+               dvode_state % DRC, &
+               dvode_state % ETA, &
+               dvode_state % ETAMAX, &
+               dvode_state % H, &
+               dvode_state % HMIN, &
+               dvode_state % HMXI, &
+               dvode_state % HNEW, &
+               dvode_state % HSCAL, &
+               dvode_state % PRL1, &
+               dvode_state % RC, &
+               dvode_state % RL1, &
+               dvode_state % TN, &
+               dvode_state % UROUND, &
+               dvode_state % HU, &
+               dvode_state % NCFN, &
+               dvode_state % NETF, &
+               dvode_state % NFE, &
+               dvode_state % NJE, &
+               dvode_state % NLU, &
+               dvode_state % NNI, &
+               dvode_state % NQU, &
+               dvode_state % NST, &
+               dvode_state % ICF, &
+               dvode_state % INIT, &
+               dvode_state % IPUP, &
+               dvode_state % JCUR, &
+               dvode_state % JSTART, &
+               dvode_state % JSV, &
+               dvode_state % L, &
+               dvode_state % LENWM, &
+               dvode_state % KFLAG, &
+               dvode_state % KUTH, &
+               dvode_state % LOCJS, &
+               dvode_state % MAXORD, &
+               dvode_state % METH, &
+               dvode_state % MITER, &
+               dvode_state % MSBJ, &
+               dvode_state % MXHNIL, &
+               dvode_state % NEWH, &
+               dvode_state % NEWQ, &
+               dvode_state % NHNIL, &
+               dvode_state % NQ, &
+               dvode_state % NQNYH, &
+               dvode_state % NQWAIT, &
+               dvode_state % NSLJ, &
+               dvode_state % NSLP, &
+               dvode_state % MXSTEP)
+     
+    ! First dimension is size 13
+    deallocate(dvode_state % EL, dvode_state % TAU)
+
+    ! First dimension is size 5
+    deallocate(dvode_state % TQ)
+
+    ! Real parameters (first dimension is size n_rpar_comps)
+    deallocate(dvode_state % RPAR)
+
+    ! State flag
+    deallocate(dvode_state % ISTATE)
+
+    ! Local time and integration end time
+    deallocate(dvode_state % T, &
+               dvode_state % TOUT)
+
+    ! Integration vector (first dimension is size VODE_NEQS)
+    deallocate(dvode_state % Y)
+
+    ! Tolerances (size is VODE_NEQS)
+    deallocate(dvode_state % RTOL, dvode_state % ATOL)
+
+  end subroutine deallocate_dvode_state
+
 
 #ifndef CUDA  
   subroutine print_state(dvode_state)

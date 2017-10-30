@@ -11,19 +11,17 @@ module actual_burner_module
 
 contains
   
-#ifdef CUDA
-  attributes(device) &
-#endif     
   subroutine actual_burner(state_in, state_out, dt, time)
 
     !$acc routine seq
 
     use integrator_module, only: integrator
+    use vode_parameters_module, only: grid_size
 
     implicit none
 
-    type (burn_t),       intent(in   ) :: state_in
-    type (burn_t),       intent(inout) :: state_out
+    type (burn_t),       intent(in   ) :: state_in(grid_size)
+    type (burn_t),       intent(inout) :: state_out(grid_size)
     double precision,    intent(in   ) :: dt, time
 
     call integrator(state_in, state_out, dt, time)
