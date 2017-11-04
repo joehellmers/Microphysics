@@ -45,13 +45,16 @@ contains
     use integration_data, only: integration_status_t
     use extern_probin_module, only: rtol_spec, rtol_temp, rtol_enuc, &
                                     atol_spec, atol_temp, atol_enuc, &
-                                    retry_burn, retry_burn_factor, retry_burn_max_change
+                                    retry_burn, retry_burn_factor, retry_burn_max_change, &
+                                    burning_mode, burning_mode_factor
 
     implicit none
 
     type (burn_t),  intent(in   ) :: state_in
     type (burn_t),  intent(inout) :: state_out
     real(dp_t),     intent(in   ) :: dt, time
+
+    real(dp_t) :: limit_factor, t_sound, t_enuc
 
 #if (INTEGRATOR == 0 || INTEGRATOR == 1)
     type (integration_status_t) :: status
@@ -130,6 +133,20 @@ contains
     call actual_integrator(state_in, state_out, dt, time)
 
 #endif
+
+    ! For burning_mode == 3, limit the change in the state.
+
+    if (burning_mode == 3) then
+
+       t_enuc = min(state_in % e, state_out % e) / max(abs(state_out % e - state_in % e) / dt, 1.d-50)
+       t_sound = max(state_out % dx / state_out % cs, 1.d-50)
+
+       limit_factor = min(1.0d0, burning_mode_factor * t_enuc / t_sound)
+
+       state_out % xn = state_in % xn + (state_out % xn - state_in % xn) * limit_factor
+       state_out % e = state_in % e + (state_out % e - state_in % e) * limit_factor
+
+    endif
 
   end subroutine integrator
 
