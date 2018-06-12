@@ -1,8 +1,5 @@
-
 module microphysics_math_module
   
-  use amrex_error_module
-
   implicit none
 
   public
@@ -141,7 +138,7 @@ contains
           hi = x + y
           lo = y - (hi - x)
 
-          if (lo .ne. 0.0_dp_t) then
+          if (lo .ne. 0.0_rt) then
              partials(j) = lo
              j = j + 1
           endif
@@ -291,7 +288,7 @@ contains
           hi = x + y
           lo = y - (hi - x)
 
-          if (lo .ne. 0.0_dp_t) then
+          if (lo .ne. 0.0_rt) then
              partials(j) = lo
              j = j + 1
           endif
@@ -366,7 +363,7 @@ contains
           hi = x + y
           lo = y - (hi - x)
 
-          if (lo .ne. 0.0_dp_t) then
+          if (lo .ne. 0.0_rt) then
              partials(j) = lo
              j = j + 1
           endif
@@ -441,7 +438,7 @@ contains
           hi = x + y
           lo = y - (hi - x)
 
-          if (lo .ne. 0.0_dp_t) then
+          if (lo .ne. 0.0_rt) then
              partials(j) = lo
              j = j + 1
           endif
@@ -516,7 +513,7 @@ contains
           hi = x + y
           lo = y - (hi - x)
 
-          if (lo .ne. 0.0_dp_t) then
+          if (lo .ne. 0.0_rt) then
              partials(j) = lo
              j = j + 1
           endif
@@ -591,7 +588,7 @@ contains
           hi = x + y
           lo = y - (hi - x)
 
-          if (lo .ne. 0.0_dp_t) then
+          if (lo .ne. 0.0_rt) then
              partials(j) = lo
              j = j + 1
           endif
@@ -666,7 +663,7 @@ contains
           hi = x + y
           lo = y - (hi - x)
 
-          if (lo .ne. 0.0_dp_t) then
+          if (lo .ne. 0.0_rt) then
              partials(j) = lo
              j = j + 1
           endif
@@ -741,7 +738,7 @@ contains
           hi = x + y
           lo = y - (hi - x)
 
-          if (lo .ne. 0.0_dp_t) then
+          if (lo .ne. 0.0_rt) then
              partials(j) = lo
              j = j + 1
           endif
@@ -816,7 +813,7 @@ contains
           hi = x + y
           lo = y - (hi - x)
 
-          if (lo .ne. 0.0_dp_t) then
+          if (lo .ne. 0.0_rt) then
              partials(j) = lo
              j = j + 1
           endif
@@ -891,7 +888,7 @@ contains
           hi = x + y
           lo = y - (hi - x)
 
-          if (lo .ne. 0.0_dp_t) then
+          if (lo .ne. 0.0_rt) then
              partials(j) = lo
              j = j + 1
           endif
@@ -966,7 +963,7 @@ contains
           hi = x + y
           lo = y - (hi - x)
 
-          if (lo .ne. 0.0_dp_t) then
+          if (lo .ne. 0.0_rt) then
              partials(j) = lo
              j = j + 1
           endif
@@ -1041,7 +1038,7 @@ contains
           hi = x + y
           lo = y - (hi - x)
 
-          if (lo .ne. 0.0_dp_t) then
+          if (lo .ne. 0.0_rt) then
              partials(j) = lo
              j = j + 1
           endif
@@ -1116,7 +1113,7 @@ contains
           hi = x + y
           lo = y - (hi - x)
 
-          if (lo .ne. 0.0_dp_t) then
+          if (lo .ne. 0.0_rt) then
              partials(j) = lo
              j = j + 1
           endif
