@@ -51,6 +51,72 @@ MICROPHYS_CORE += $(EOS_DIRS)
 
 
 #-----------------------------------------------------------------------------
+# Integrators
+
+INTEGRATOR_DIR ?= VODE
+
+# Arbitrarily number the integrators so we can preprocessor tests in the code.
+
+INTEGRATOR_NUM := -1
+
+ifeq ($(INTEGRATOR_DIR),VODE)
+  INTEGRATOR_NUM := 0
+else ifeq ($(INTEGRATOR_DIR),BS)
+  INTEGRATOR_NUM := 1
+else ifeq ($(INTEGRATOR_DIR),VBDF)
+  INTEGRATOR_NUM := 2
+else ifeq ($(INTEGRATOR_DIR),VODE90)
+  INTEGRATOR_NUM := 3
+endif
+
+DEFINES += -DINTEGRATOR=$(INTEGRATOR_NUM)
+
+# Include all integrators in the build.
+
+ifeq ($(INTEGRATOR_DIR),VODE)
+
+  # Include VODE and BS
+
+  INCLUDE_LOCATIONS += $(MICROPHYSICS_HOME)/integration/VODE
+  VPATH_LOCATIONS   += $(MICROPHYSICS_HOME)/integration/VODE
+  EXTERN_CORE       += $(MICROPHYSICS_HOME)/integration/VODE
+
+  include $(MICROPHYSICS_HOME)/integration/VODE/GPackage.mak
+
+  INCLUDE_LOCATIONS += $(MICROPHYSICS_HOME)/integration/BS
+  VPATH_LOCATIONS   += $(MICROPHYSICS_HOME)/integration/BS
+  EXTERN_CORE       += $(MICROPHYSICS_HOME)/integration/BS
+
+  include $(MICROPHYSICS_HOME)/integration/BS/GPackage.mak
+
+else ifeq ($(INTEGRATOR_DIR),BS)
+
+  # Include BS and VODE
+
+  INCLUDE_LOCATIONS += $(MICROPHYSICS_HOME)/integration/VODE
+  VPATH_LOCATIONS   += $(MICROPHYSICS_HOME)/integration/VODE
+  EXTERN_CORE       += $(MICROPHYSICS_HOME)/integration/VODE
+
+  include $(MICROPHYSICS_HOME)/integration/VODE/GPackage.mak
+
+  INCLUDE_LOCATIONS += $(MICROPHYSICS_HOME)/integration/BS
+  VPATH_LOCATIONS   += $(MICROPHYSICS_HOME)/integration/BS
+  EXTERN_CORE       += $(MICROPHYSICS_HOME)/integration/BS
+
+  include $(MICROPHYSICS_HOME)/integration/BS/GPackage.mak
+
+else
+
+  INCLUDE_LOCATIONS += $(MICROPHYSICS_HOME)/integration/$(INTEGRATOR_DIR)
+  VPATH_LOCATIONS   += $(MICROPHYSICS_HOME)/integration/$(INTEGRATOR_DIR)
+  EXTERN_CORE       += $(MICROPHYSICS_HOME)/integration/$(INTEGRATOR_DIR)
+
+  include $(MICROPHYSICS_HOME)/integration/$(INTEGRATOR_DIR)/GPackage.mak
+
+endif
+
+
+#-----------------------------------------------------------------------------
 # network stuff -- specify your particlar network via NETWORK_DIR
 # this will increment MICROPHYS_CORE
 NETWORK_TOP_DIR := $(MICROPHYSICS_HOME)/networks
