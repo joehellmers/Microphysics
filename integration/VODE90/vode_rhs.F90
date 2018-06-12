@@ -20,7 +20,7 @@ contains
     use actual_rhs_module, only: actual_rhs
     use extern_probin_module, only: renormalize_abundances, &
                                     burning_mode, burning_mode_factor, &
-                                    integrate_temperature, integrate_energy &
+                                    integrate_temperature, integrate_energy, &
                                     react_boost
     use vode_type_module, only: clean_state, renormalize_species, update_thermodynamics, &
                                 burn_to_vode, vode_to_burn, VODE_NEQS
@@ -28,9 +28,9 @@ contains
 
     implicit none
 
-    real(dp_t), intent(INOUT) :: time, y(VODE_NEQS)
-    real(dp_t), intent(INOUT) :: rpar(n_rpar_comps)
-    real(dp_t), intent(INOUT) :: ydot(VODE_NEQS)
+    real(rt), intent(INOUT) :: time, y(VODE_NEQS)
+    real(rt), intent(INOUT) :: rpar(n_rpar_comps)
+    real(rt), intent(INOUT) :: ydot(VODE_NEQS)
 
     type (burn_t) :: burn_state
 
@@ -120,8 +120,8 @@ contains
     implicit none
 
     integer   , intent(IN   ) :: ml, mu, nrpd
-    real(dp_t), intent(INOUT) :: y(VODE_NEQS), rpar(n_rpar_comps), time
-    real(dp_t), intent(  OUT) :: pd(VODE_NEQS,VODE_NEQS)
+    real(rt), intent(INOUT) :: y(VODE_NEQS), rpar(n_rpar_comps), time
+    real(rt), intent(  OUT) :: pd(VODE_NEQS,VODE_NEQS)
 
     type (burn_t) :: state
     real(rt) :: limit_factor, t_sound, t_enuc
