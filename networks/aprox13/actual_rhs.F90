@@ -552,7 +552,7 @@ contains
     !$acc routine seq
 
     use amrex_constants_module, only: ZERO, SIXTH
-    use microphysics_math_module, only: esum
+    use microphysics_math_module
 
     implicit none
 
