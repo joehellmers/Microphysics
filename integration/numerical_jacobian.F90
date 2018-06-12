@@ -17,7 +17,7 @@ contains
     !$acc routine seq
 
     use actual_rhs_module, only: actual_rhs
-    use managed_probin_module, only : cu_centered_diff_jac
+    use extern_probin_module, only : centered_diff_jac
 
     implicit none
 
@@ -37,7 +37,7 @@ contains
     call actual_rhs(state)
 
 
-    if (cu_centered_diff_jac) then
+    if (centered_diff_jac) then
        state_del = state
        state_delm = state
 
