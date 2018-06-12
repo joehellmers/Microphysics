@@ -14,13 +14,14 @@ contains
     !$acc routine seq
     
     use actual_network, only: aion, nspec_evolve
-    use bl_types, only: dp_t
     use burn_type_module, only: burn_t, net_ienuc, net_itemp
-    use bl_constants_module, only: ZERO, ONE
+    use amrex_constants_module, only: ZERO, ONE
+    use amrex_fort_module, only : rt => amrex_real
     use actual_rhs_module, only: actual_rhs
     use extern_probin_module, only: renormalize_abundances, &
-         burning_mode, burning_mode_factor, &
-         integrate_temperature, integrate_energy
+                                    burning_mode, burning_mode_factor, &
+                                    integrate_temperature, integrate_energy &
+                                    react_boost
     use vode_type_module, only: clean_state, renormalize_species, update_thermodynamics, &
                                 burn_to_vode, vode_to_burn, VODE_NEQS
     use rpar_indices, only: n_rpar_comps, irp_y_init, irp_t_sound
@@ -33,7 +34,7 @@ contains
 
     type (burn_t) :: burn_state
 
-    real(dp_t) :: limit_factor, t_sound, t_enuc
+    real(rt) :: limit_factor, t_sound, t_enuc
 
     ! We are integrating a system of
     !
@@ -46,12 +47,6 @@ contains
     ! Fix the state as necessary.
 
     call clean_state(y, rpar)
-
-    ! Renormalize the abundances as necessary.
-
-    if (renormalize_abundances) then
-       call renormalize_species(y, rpar)
-    endif
 
     ! Update the thermodynamics as necessary.
 
@@ -75,6 +70,11 @@ contains
 
     if (.not. integrate_energy) then
        burn_state % ydot(net_ienuc) = ZERO
+    endif
+
+    ! apply fudge factor:
+    if (react_boost > ZERO) then
+       burn_state % ydot(:) = react_boost * burn_state % ydot(:)
     endif
 
     ! For burning_mode == 3, limit the rates.
@@ -105,15 +105,17 @@ contains
 
     !$acc routine seq
     
+    use amrex_fort_module, only : rt => amrex_real
+
     use network, only: aion, aion_inv, nspec_evolve
-    use bl_constants_module, only: ZERO
+    use amrex_constants_module, only: ZERO
     use actual_rhs_module, only: actual_jac
     use burn_type_module, only: burn_t, net_ienuc, net_itemp
     use vode_type_module, only: vode_to_burn, burn_to_vode, VODE_NEQS
     use rpar_indices, only: n_rpar_comps, irp_y_init, irp_t_sound
-    use bl_types, only: dp_t
     use extern_probin_module, only: burning_mode, burning_mode_factor, &
-         integrate_temperature, integrate_energy
+                                    integrate_temperature, integrate_energy, &
+                                    react_boost
 
     implicit none
 
@@ -122,7 +124,7 @@ contains
     real(dp_t), intent(  OUT) :: pd(VODE_NEQS,VODE_NEQS)
 
     type (burn_t) :: state
-    real(dp_t) :: limit_factor, t_sound, t_enuc
+    real(rt) :: limit_factor, t_sound, t_enuc
     integer :: n
 
     ! Call the specific network routine to get the Jacobian.
@@ -137,6 +139,11 @@ contains
        state % jac(:,n) = state % jac(:,n) * aion_inv(n)
     enddo
 
+    ! apply fudge factor:
+    if (react_boost > ZERO) then
+       state % jac(:,:) = react_boost * state % jac(:,:)
+    endif
+
     ! Allow temperature and energy integration to be disabled.
     if (.not. integrate_temperature) then
        state % jac(net_itemp,:) = ZERO
@@ -145,6 +152,8 @@ contains
     if (.not. integrate_energy) then
        state % jac(net_ienuc,:) = ZERO
     endif
+
+
 
     ! For burning_mode == 3, limit the rates.
     ! Note that we are limiting with respect to the initial zone energy.

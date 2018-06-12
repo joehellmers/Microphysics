@@ -92,8 +92,7 @@ contains
 
   subroutine actual_jac(state)
 
-    use bl_types
-    use bl_constants_module, only: ZERO
+    use amrex_constants_module, only: ZERO
     use eos_module
 
     implicit none
@@ -211,8 +210,8 @@ contains
 
   subroutine rhs(y, rate, ratdum, dydt, deriva)
 
-    use bl_constants_module, only: ZERO, SIXTH
-    use microphysics_math_module
+    use amrex_constants_module, only: ZERO, SIXTH
+    use microphysics_math_module, only: esum
 
     implicit none
 
@@ -761,7 +760,8 @@ contains
 
     use tfactors_module
     use aprox_rates_module
-    use bl_constants_module, only: ZERO
+    use amrex_constants_module, only: ZERO
+    use extern_probin_module, only: use_c12ag_deboer17
 
     double precision :: btemp, bden
     double precision :: ratraw(nrates), dratrawdt(nrates), dratrawdd(nrates)
@@ -867,10 +867,18 @@ contains
                     ratraw(irnag),dratrawdt(irnag),dratrawdd(irnag), &
                     rrate,drratedt,drratedd)
 
-    ! c12(a,g)o16
-    call rate_c12ag(tf,bden, &
+    ! Determine which c12(a,g)o16 rate to use
+    if (use_c12ag_deboer17) then
+    ! deboer + 2017 c12(a,g)o16 rate
+       call rate_c12ag_deboer17(tf,bden, &
                     ratraw(ircag),dratrawdt(ircag),dratrawdd(ircag), &
                     ratraw(iroga),dratrawdt(iroga),dratrawdd(iroga))
+    else
+    ! 1.7 times cf88 c12(a,g)o16 rate
+       call rate_c12ag(tf,bden, &
+                    ratraw(ircag),dratrawdt(ircag),dratrawdd(ircag), &
+                    ratraw(iroga),dratrawdt(iroga),dratrawdd(iroga))
+    endif
 
     ! c12 + c12
     call rate_c12c12(tf,bden, &
@@ -1041,7 +1049,7 @@ contains
 
   subroutine weak_aprox19(y, state, ratraw, dratrawdt, dratrawdd)
 
-    use aprox_rates_module, only: ecapnuc, mazurek
+    use aprox_rates_module, only: ecapnuc, langanke
 
     implicit none
 
@@ -1068,7 +1076,7 @@ contains
     call ecapnuc(state % eta, state % T, ratraw(irpen), ratraw(irnep), spen, snep)
 
     ! ni56 electron capture rate
-    call mazurek(state % T, state % rho, y(ini56), state % y_e, ratraw(irn56ec), xx)
+    call langanke(state % T, state % rho, y(ini56), state % y_e, ratraw(irn56ec), xx)
 
   end subroutine weak_aprox19
 
@@ -1080,7 +1088,7 @@ contains
                             dratdumdy1, dratdumdy2, &
                             scfac, dscfacdt, dscfacdd)
 
-    use bl_constants_module, only: ZERO, ONE
+    use amrex_constants_module, only: ZERO, ONE
     use screening_module, only: screen5, plasma_state, fill_plasma_state
 
     ! this routine computes the screening factors

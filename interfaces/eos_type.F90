@@ -1,6 +1,5 @@
 module eos_type_module
 
-  use bl_types, only: dp_t
   use network, only: nspec, naux
 
   implicit none
@@ -39,107 +38,27 @@ module eos_type_module
 
   ! Minimum and maximum thermodynamic quantities permitted by the EOS.
 
-  real(dp_t), &
-#ifdef CUDA       
-       managed, &
-#endif       
-       allocatable, save :: mintemp
-  
-  real(dp_t), &
-#ifdef CUDA       
-       managed, &
-#endif       
-       allocatable, save :: maxtemp
-  
-  real(dp_t), &
-#ifdef CUDA       
-       managed, &
+  real(rt), allocatable, save :: mintemp
+  real(rt), allocatable, save :: maxtemp
+  real(rt), allocatable, save :: mindens
+  real(rt), allocatable, save :: maxdens
+  real(rt), allocatable, save :: minx
+  real(rt), allocatable, save :: maxx
+  real(rt), allocatable, save :: minye
+  real(rt), allocatable, save :: maxye
+  real(rt), allocatable, save :: mine
+  real(rt), allocatable, save :: maxe
+  real(rt), allocatable, save :: minp
+  real(rt), allocatable, save :: maxp
+  real(rt), allocatable, save :: mins
+  real(rt), allocatable, save :: maxs
+  real(rt), allocatable, save :: minh
+  real(rt), allocatable, save :: maxh
+
+#ifdef CUDA
+  attributes(managed) :: mintemp, maxtemp, mindens, maxdens, minx, maxx, minye, maxye, &
+                         mine, maxe, minp, maxp, mins, maxs, minh, maxh
 #endif
-       allocatable, save :: mindens
-  
-  real(dp_t), &
-#ifdef CUDA       
-       managed, &
-#endif       
-       allocatable, save :: maxdens
-  
-  real(dp_t), &
-#ifdef CUDA       
-       managed, &
-#endif       
-       allocatable, save :: minx
-  
-  real(dp_t), &
-#ifdef CUDA       
-       managed, &
-#endif       
-       allocatable, save :: maxx
-  
-  real(dp_t), &
-#ifdef CUDA       
-       managed, &
-#endif
-       allocatable, save :: minye
-  
-  real(dp_t), &
-#ifdef CUDA       
-       managed, &
-#endif       
-       allocatable, save :: maxye
-  
-  real(dp_t), &
-#ifdef CUDA       
-       managed, &
-#endif
-       allocatable, save :: mine
-  
-  real(dp_t), &
-#ifdef CUDA       
-       managed, &
-#endif       
-       allocatable, save :: maxe
-  
-  real(dp_t), &
-#ifdef CUDA       
-       managed, &
-#endif
-       allocatable, save :: minp
-  
-  real(dp_t), &
-#ifdef CUDA       
-       managed, &
-#endif       
-       allocatable, save :: maxp
-  
-  real(dp_t), &
-#ifdef CUDA       
-       managed, &
-#endif
-       allocatable, save :: mins
-  
-  real(dp_t), &
-#ifdef CUDA       
-       managed, &
-#endif
-       allocatable, save :: maxs
-  
-  real(dp_t), &
-#ifdef CUDA       
-       managed, &
-#endif
-       allocatable, save :: minh
-  
-  real(dp_t), &
-#ifdef CUDA       
-       managed, &
-#endif
-       allocatable, save :: maxh
-  
-  real(dp_t), &
-#ifdef CUDA       
-       managed, &
-#endif
-       allocatable, save :: small_x_managed
 
   !$acc declare &
   !$acc create(mintemp, maxtemp, mindens, maxdens, minx, maxx, minye, maxye) &
@@ -186,50 +105,55 @@ module eos_type_module
 
   type :: eos_t
 
-    real(dp_t) :: rho
-    real(dp_t) :: T
-    real(dp_t) :: p
-    real(dp_t) :: e
-    real(dp_t) :: h
-    real(dp_t) :: s
-    real(dp_t) :: xn(nspec)
-    real(dp_t) :: aux(naux)
+    real(rt) :: rho
+    real(rt) :: T
+    real(rt) :: p
+    real(rt) :: e
+    real(rt) :: h
+    real(rt) :: s
+    real(rt) :: xn(nspec)
+    real(rt) :: aux(naux)
 
-    real(dp_t) :: dpdT
-    real(dp_t) :: dpdr
-    real(dp_t) :: dedT
-    real(dp_t) :: dedr
-    real(dp_t) :: dhdT
-    real(dp_t) :: dhdr
-    real(dp_t) :: dsdT
-    real(dp_t) :: dsdr
-    real(dp_t) :: dpde
-    real(dp_t) :: dpdr_e
+    real(rt) :: dpdT
+    real(rt) :: dpdr
+    real(rt) :: dedT
+    real(rt) :: dedr
+    real(rt) :: dhdT
+    real(rt) :: dhdr
+    real(rt) :: dsdT
+    real(rt) :: dsdr
+    real(rt) :: dpde
+    real(rt) :: dpdr_e
 
-    real(dp_t) :: cv
-    real(dp_t) :: cp
-    real(dp_t) :: xne
-    real(dp_t) :: xnp
-    real(dp_t) :: eta
-    real(dp_t) :: pele
-    real(dp_t) :: ppos
-    real(dp_t) :: mu
-    real(dp_t) :: mu_e
-    real(dp_t) :: y_e
-    real(dp_t) :: dedX(nspec)
-    real(dp_t) :: dpdX(nspec)
-    real(dp_t) :: dhdX(nspec)
-    real(dp_t) :: gam1
-    real(dp_t) :: cs
+    real(rt) :: cv
+    real(rt) :: cp
+    real(rt) :: xne
+    real(rt) :: xnp
+    real(rt) :: eta
+    real(rt) :: pele
+    real(rt) :: ppos
+    real(rt) :: mu
+    real(rt) :: mu_e
+    real(rt) :: y_e
 
-    real(dp_t) :: abar
-    real(dp_t) :: zbar
-    real(dp_t) :: dpdA
+#ifdef EXTRA_THERMO
+    real(rt) :: dedX(nspec)
+    real(rt) :: dpdX(nspec)
+    real(rt) :: dhdX(nspec)
+#endif
 
-    real(dp_t) :: dpdZ
-    real(dp_t) :: dedA
-    real(dp_t) :: dedZ
+    real(rt) :: gam1
+    real(rt) :: cs
 
+    real(rt) :: abar
+    real(rt) :: zbar
+
+#ifdef EXTRA_THERMO
+    real(rt) :: dpdA
+    real(rt) :: dpdZ
+    real(rt) :: dedA
+    real(rt) :: dedZ
+#endif
   end type eos_t
 
 contains
@@ -299,8 +223,8 @@ contains
 
     !$acc routine seq
 
-    use bl_constants_module, only: ONE
-    use network, only: aion, aion_inv, zion
+    use amrex_constants_module, only: ONE
+    use network, only: aion_inv, zion
 
     implicit none
 
@@ -328,13 +252,14 @@ contains
 
     !$acc routine seq
 
-    use bl_constants_module, only: ZERO
+    use amrex_constants_module, only: ZERO
     use network, only: aion, aion_inv, zion
 
     implicit none
 
     type (eos_t), intent(inout) :: state
 
+#ifdef EXTRA_THERMO
     state % dpdX(:) = state % dpdA * (state % abar * aion_inv(:))   &
                                    * (aion(:) - state % abar) &
                     + state % dpdZ * (state % abar * aion_inv(:))   &
@@ -352,6 +277,7 @@ contains
                        *  state % dPdX(:) / state % dPdr
 
     endif
+#endif
 
   end subroutine composition_derivatives
 
@@ -366,13 +292,14 @@ contains
 
     !$acc routine seq
 
-    use bl_constants_module, only: ONE
+    use amrex_constants_module, only: ONE
+    use extern_probin_module, only: small_x
 
     implicit none
 
     type (eos_t), intent(inout) :: state
 
-    state % xn = max(small_x_managed, min(ONE, state % xn))
+    state % xn = max(small_x, min(ONE, state % xn))
 
     state % xn = state % xn / sum(state % xn)
 
@@ -425,7 +352,7 @@ contains
 
     implicit none
 
-    real(dp_t), intent(out) :: small_temp_out
+    real(rt), intent(out) :: small_temp_out
 
     small_temp_out = mintemp
 
@@ -441,7 +368,7 @@ contains
 
     implicit none
 
-    real(dp_t), intent(out) :: small_dens_out
+    real(rt), intent(out) :: small_dens_out
 
     small_dens_out = mindens
 
@@ -457,7 +384,7 @@ contains
 
     implicit none
 
-    real(dp_t), intent(out) :: max_temp_out
+    real(rt), intent(out) :: max_temp_out
 
     max_temp_out = maxtemp
 
@@ -473,7 +400,7 @@ contains
 
     implicit none
 
-    real(dp_t), intent(out) :: max_dens_out
+    real(rt), intent(out) :: max_dens_out
 
     max_dens_out = maxdens
 

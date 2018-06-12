@@ -9,12 +9,12 @@ contains
     !$acc routine seq
 
     use network, only: aion, aion_inv, nspec_evolve
-    use bl_types, only: dp_t
-    use bl_constants_module, only: ZERO, ONE
+    use amrex_constants_module, only: ZERO, ONE
+    use amrex_fort_module, only : rt => amrex_real
     use actual_rhs_module, only: actual_jac
     use numerical_jac_module, only: numerical_jac
     use extern_probin_module, only: jacobian, burning_mode, burning_mode_factor, &
-                                    integrate_temperature, integrate_energy
+                                    integrate_temperature, integrate_energy, react_boost
     use burn_type_module, only: burn_t, net_ienuc, net_itemp
     use bs_type_module, only: bs_t, bs_to_burn, burn_to_bs
     use rpar_indices, only: irp_y_init, irp_t_sound
@@ -23,7 +23,7 @@ contains
 
     type (bs_t) :: bs
 
-    real(dp_t) :: limit_factor, t_sound, t_enuc
+    real(rt) :: limit_factor, t_sound, t_enuc
 
     integer :: n
 
@@ -71,6 +71,11 @@ contains
 
        call numerical_jac(bs % burn_s)
 
+    endif
+
+    ! apply fudge factor:
+    if (react_boost > ZERO) then
+       bs % burn_s % jac(:,:) = react_boost * bs % burn_s % jac(:,:)
     endif
 
     call burn_to_bs(bs)

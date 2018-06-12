@@ -91,7 +91,7 @@ contains
 
   subroutine actual_jac(state)
 
-    use bl_constants_module, only: ZERO
+    use amrex_constants_module, only: ZERO
 
     implicit none
 
@@ -208,8 +208,8 @@ contains
 
   subroutine rhs(y, rate, ratdum, dydt, deriva)
 
-    use bl_constants_module, only: ZERO, SIXTH
-    use microphysics_math_module
+    use amrex_constants_module, only: ZERO, SIXTH
+    use microphysics_math_module, only: esum
 
     implicit none
 
@@ -357,9 +357,10 @@ contains
     a(4) =  y(ini56) * y(iprot) * rate(ir8f54)
     a(5) = -y(ihe4) * rate(iralf1)
     a(6) =  y(ineut)*y(ineut) * y(iprot)*y(iprot) * rate(iralf2)
+    a(7) =  y(ife56) * y(iprot) * y(iprot) * rate(irfe56_aux3) 
+    a(8) = -y(ife54) * y(ihe4) * rate(irfe56_aux4)
 
-    dydt(ihe4) =  dydt(ihe4) + esum6(a)
-
+    dydt(ihe4) =  dydt(ihe4) + esum8(a)
 
     ! ppchain
     a(1) = 0.5d0 * y(ihe3) * y(ihe3) * rate(ir33)
@@ -370,7 +371,7 @@ contains
 
     ! cno cycles
     a(1) = y(io16) * y(ih1) * rate(iropg)
-    a(1) = -y(ihe4) * y(in14) * rate(irnag) * 1.5d0
+    a(2) = -y(ihe4) * y(in14) * rate(irnag) * 1.5d0
 
     dydt(ihe4) =  dydt(ihe4) + sum(a(1:2))
 
@@ -704,10 +705,22 @@ contains
     a(4)  =  y(ini56) * rate(ir4f54)
     a(5)  = -y(ife54) * y(iprot) * y(iprot) * rate(ir5f54)
     a(6)  =  y(ife52) * y(ihe4) * rate(ir6f54)
-    a(7)  =  c54 * y(ini56) * rate(irn56ec)
+    a(7)  =  y(ife56) * rate(irfe56_aux1) 
+    a(8)  = -y(ife54) * y(ineut) * y(ineut) * rate(irfe56_aux2) 
+    a(9)  =  y(ife56) * y(iprot) * y(iprot) * rate(irfe56_aux3) 
+    a(10) = -y(ife54) * y(ihe4) * rate(irfe56_aux4) 
 
-    dydt(ife54) =  dydt(ife54) + esum7(a)
+    dydt(ife54) =  dydt(ife54) + esum(a,10)
 
+    ! fe56 reactions
+    a(1) =  y(ini56) * rate(irn56ec) 
+    a(2) = -y(ife56) * 1.0d-04 * rate(irn56ec) 
+    a(3) = -y(ife56) * rate(irfe56_aux1) 
+    a(4) =  y(ife54) * y(ineut) * y(ineut) * rate(irfe56_aux2)  
+    a(5) = -y(ife56) * y(iprot) * y(iprot) * rate(irfe56_aux3) 
+    a(6) =  y(ife54) * y(ihe4) * rate(irfe56_aux4) 
+
+    dydt(ife56) =  dydt(ife56) + esum(a,6) 
 
     ! ni56 reactions
     a(1) =  y(ife52) * y(ihe4) * rate(irfeag)
@@ -733,8 +746,10 @@ contains
     a(4) = -2.0d0 * y(ineut)*y(ineut) * y(iprot)*y(iprot) * rate(iralf2)
     a(5) =  y(iprot) * rate(irpen)
     a(6) = -y(ineut) * rate(irnep)
+    a(7) =  2.0d0 * y(ife56) * rate(irfe56_aux1) 
+    a(8) = -2.0d0 * y(ife54) * y(ineut) * y(ineut) * rate(irfe56_aux2)
 
-    dydt(ineut) =  dydt(ineut) + esum6(a)
+    dydt(ineut) =  dydt(ineut) + esum8(a)
 
 
     ! photodisintegration protons
@@ -746,8 +761,10 @@ contains
     a(6)  = -2.0d0 * y(ineut)*y(ineut) * y(iprot)*y(iprot) * rate(iralf2)
     a(7)  = -y(iprot) * rate(irpen)
     a(8)  =  y(ineut) * rate(irnep)
+    a(9)  = -2.0d0 * y(ife56) * y(iprot) * y(iprot) * rate(irfe56_aux3) 
+    a(10) =  2.0d0 * y(ife54) * y(ihe4) * rate(irfe56_aux4)
 
-    dydt(iprot) =  dydt(iprot) + esum8(a)
+    dydt(iprot) =  dydt(iprot) + esum(a,10)
 
   end subroutine rhs
 
@@ -760,7 +777,8 @@ contains
 
     use tfactors_module
     use aprox_rates_module
-    use bl_constants_module, only: ZERO
+    use amrex_constants_module, only: ZERO
+    use extern_probin_module, only: use_c12ag_deboer17
 
     double precision :: btemp, bden
     double precision :: ratraw(nrates), dratrawdt(nrates), dratrawdd(nrates)
@@ -865,10 +883,18 @@ contains
                     ratraw(irnag),dratrawdt(irnag),dratrawdd(irnag), &
                     rrate,drratedt,drratedd)
 
-    ! c12(a,g)o16
-    call rate_c12ag(tf,bden, &
+    ! Determine which c12(a,g)o16 rate to use
+    if (use_c12ag_deboer17) then
+    ! deboer + 2017 c12(a,g)o16 rate
+       call rate_c12ag_deboer17(tf,bden, &
                     ratraw(ircag),dratrawdt(ircag),dratrawdd(ircag), &
                     ratraw(iroga),dratrawdt(iroga),dratrawdd(iroga))
+    else
+    ! 1.7 times cf88 c12(a,g)o16 rate
+       call rate_c12ag(tf,bden, &
+                    ratraw(ircag),dratrawdt(ircag),dratrawdd(ircag), &
+                    ratraw(iroga),dratrawdt(iroga),dratrawdd(iroga))
+    endif
 
     ! c12 + c12
     call rate_c12c12(tf,bden, &
@@ -1060,7 +1086,7 @@ contains
 
   subroutine weak_aprox21(y, state, ratraw, dratrawdt, dratrawdd)
 
-    use aprox_rates_module, only: ecapnuc, mazurek
+    use aprox_rates_module, only: ecapnuc, langanke
 
     implicit none
 
@@ -1087,7 +1113,7 @@ contains
     call ecapnuc(state % eta, state % T, ratraw(irpen), ratraw(irnep), spen, snep)
 
     ! ni56 electron capture rate
-    call mazurek(state % T, state % rho, y(ini56), state % y_e, ratraw(irn56ec), xx)
+    call langanke(state % T, state % rho, y(ini56), state % y_e, ratraw(irn56ec), xx)
 
   end subroutine weak_aprox21
 
@@ -1099,7 +1125,7 @@ contains
                             dratdumdy1, dratdumdy2, &
                             scfac, dscfacdt, dscfacdd)
 
-    use bl_constants_module, only: ZERO, ONE
+    use amrex_constants_module, only: ZERO, ONE
     use screening_module, only: screen5, plasma_state, fill_plasma_state
 
     ! this routine computes the screening factors
@@ -2356,8 +2382,8 @@ contains
   subroutine dfdy_isotopes_aprox21(y,dfdy,ratdum,dratdumdy1,dratdumdy2)
 
     use network
-    use microphysics_math_module
-    use bl_constants_module, only: ZERO
+    use microphysics_math_module, only: esum
+    use amrex_constants_module, only: ZERO
 
     implicit none
 

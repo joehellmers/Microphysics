@@ -44,6 +44,7 @@ contains
   subroutine init_reaclib()
     
     allocate( ctemp_rate(7, 6) )
+
     ! c12_c12__he4_ne20
     ctemp_rate(:, 1) = [  &
         6.12863000000000d+01, &

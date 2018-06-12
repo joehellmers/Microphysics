@@ -1,7 +1,7 @@
 module numerical_jac_module
 
-  use bl_types
-  use bl_constants_module, only: ZERO, HALF, ONE
+  use amrex_constants_module, only: ZERO, HALF, ONE
+  use amrex_fort_module, only : rt => amrex_real
   use network
   use burn_type_module
 
@@ -29,7 +29,7 @@ contains
 
     ! the choice of eps should be ~ sqrt(eps), where eps is machine epsilon. 
     ! this balances truncation vs. roundoff error in the differencing
-    real(dp_t), parameter :: eps = 1.d-8
+    real(rt), parameter :: eps = 1.d-8
 
     state % jac(:,:) = ZERO
 
@@ -43,16 +43,22 @@ contains
 
        ! species derivatives
        do n = 1, nspec_evolve
-          ! perturb species -- we send in X, but ydot is in terms of dY/dt, not dX/dt
+          ! perturb species
           state_del % xn = state % xn
           state_del % xn(n) = state % xn(n) * (ONE + eps)
 
           call actual_rhs(state_del)
 
+          ! We integrate X, so convert from the Y we got back from the RHS
+
+          state_del % ydot(1:nspec_evolve) = state_del % ydot(1:nspec_evolve) * aion(1:nspec_evolve)
+
           state_delm % xn = state % xn
           state_delm % xn(n) = state % xn(n) * (ONE - eps)
 
           call actual_rhs(state_delm)
+
+          state_delm % ydot(1:nspec_evolve) = state_del % ydot(1:nspec_evolve) * aion(1:nspec_evolve)
 
           do m = 1, neqs
              state % jac(m,n) = HALF*(state_del % ydot(m) - state_delm % ydot(m)) / &

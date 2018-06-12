@@ -6,8 +6,6 @@
 
 module probin_module
 
-  use bl_types
-
   implicit none
 
   private
@@ -22,8 +20,6 @@ end module probin_module
 
 
 module extern_probin_module
-
-  use bl_types
 
   implicit none
 
@@ -40,8 +36,7 @@ end module extern_probin_module
 
 module runtime_init_module
 
-  use bl_types
-  use bl_error_module
+  use amrex_error_module
   use probin_module
   use extern_probin_module
 
@@ -91,10 +86,10 @@ contains
              read(unit=un, nml = probin)
              close(unit=un)
           else
-             call bl_error("ERROR: inputs file does not exist")
+             call amrex_error("ERROR: inputs file does not exist")
           endif
        else
-          call bl_error("ERROR: no inputs file specified")
+          call amrex_error("ERROR: no inputs file specified")
        endif
     endif
 
@@ -115,7 +110,7 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine runtime_pretty_print(unit)
 
-    use bl_constants_module
+    use amrex_constants_module
     use probin_module
     use extern_probin_module
 

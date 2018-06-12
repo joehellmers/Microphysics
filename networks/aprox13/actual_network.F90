@@ -1,6 +1,6 @@
 module actual_network
 
-  use bl_types
+  use amrex_fort_module, only : rt => amrex_real
 
   implicit none
 
@@ -22,24 +22,12 @@ module actual_network
   integer, parameter :: ife52 = 12
   integer, parameter :: ini56 = 13
 
-  real(dp_t), &
-#ifdef CUDA       
-       managed, &
-#endif       
-       allocatable, save :: aion(:), zion(:), bion(:)
-  
-  real(dp_t), &
-#ifdef CUDA
-       managed, &
-#endif
-       allocatable, save :: nion(:), mion(:), wion(:)
+  real(rt), allocatable, save :: aion(:), zion(:), bion(:)
+  real(rt), allocatable, save :: nion(:), mion(:), wion(:)
 
-  logical, &
 #ifdef CUDA
-       managed, &
+  attributes(managed) :: aion, zion, bion, nion, mion, wion
 #endif
-       allocatable, save :: cu_use_tables
-  
 
   character (len=16), save :: spec_names(nspec)
   character (len= 5), save :: short_spec_names(nspec)
@@ -141,16 +129,17 @@ module actual_network
 
   character (len=16), save :: ratenames(nrates)
 
+#ifdef CUDA
+  attributes(managed) :: aion, zion
+#endif
+
 contains
 
   subroutine actual_network_init
 
-    use extern_probin_module, only: use_tables
-    
     implicit none
 
     ! Allocate ion info arrays and table flag
-    allocate(cu_use_tables)    
     allocate(aion(nspec))
     allocate(zion(nspec))
     allocate(bion(nspec))
@@ -158,7 +147,6 @@ contains
     allocate(mion(nspec))
     allocate(wion(nspec))
 
-    cu_use_tables = use_tables
     
     short_spec_names(ihe4)  = 'he4'
     short_spec_names(ic12)  = 'c12'
@@ -187,6 +175,13 @@ contains
     spec_names(icr48) = "chromium-48"
     spec_names(ife52) = "iron-52"
     spec_names(ini56) = "nickel-56"
+
+    allocate(aion(nspec))
+    allocate(zion(nspec))
+    allocate(nion(nspec))
+    allocate(bion(nspec))
+    allocate(mion(nspec))
+    allocate(wion(nspec))
 
     ! Set the number of nucleons in the element
     aion(ihe4)  = 4.0d0
@@ -324,7 +319,6 @@ contains
     implicit none
 
     ! Deallocate storage arrays and other managed allocatables
-    deallocate(cu_use_tables)
     deallocate(aion)
     deallocate(zion)
     deallocate(bion)

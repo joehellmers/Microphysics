@@ -1,14 +1,14 @@
-module jac_module
+module bs_jac_module
 
   implicit none
 
 contains
 
-  subroutine jac(bs)
+  subroutine bs_jac(bs)
 
     !$acc routine seq
 
-    use bl_constants_module, only: ZERO
+    use amrex_constants_module, only: ZERO
     use actual_rhs_module, only: actual_jac
     use numerical_jac_module, only: numerical_jac
     use extern_probin_module, only: jacobian
@@ -46,6 +46,6 @@ contains
 
     bs % n_jac = bs % n_jac + 1
 
-  end subroutine jac
+  end subroutine bs_jac
 
-end module jac_module
+end module bs_jac_module

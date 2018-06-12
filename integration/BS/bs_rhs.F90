@@ -11,12 +11,12 @@ contains
     !$acc routine seq
 
     use actual_network, only: aion, nspec_evolve
-    use bl_types, only: dp_t
+    use amrex_fort_module, only : rt => amrex_real
     use burn_type_module, only: burn_t, net_ienuc, net_itemp
-    use bl_constants_module, only: ZERO, ONE
+    use amrex_constants_module, only: ZERO, ONE
     use actual_rhs_module, only: actual_rhs
     use extern_probin_module, only: burning_mode, burning_mode_factor, &
-                                    integrate_temperature, integrate_energy
+                                    integrate_temperature, integrate_energy, react_boost
     use bs_type_module, only: bs_t, clean_state, renormalize_species, update_thermodynamics, &
                               burn_to_bs, bs_to_burn
     use rpar_indices, only: irp_y_init, irp_t_sound
@@ -25,7 +25,7 @@ contains
 
     type (bs_t) :: bs
 
-    real(dp_t) :: limit_factor, t_sound, t_enuc
+    real(rt) :: limit_factor, t_sound, t_enuc
 
     ! We are integrating a system of
     !
@@ -47,7 +47,7 @@ contains
     call bs_to_burn(bs)
     call actual_rhs(bs % burn_s)
 
-    ! We integrate Y, not X
+    ! We integrate X, not Y
     bs % burn_s % ydot(1:nspec_evolve) = &
          bs % burn_s % ydot(1:nspec_evolve) * aion(1:nspec_evolve)
 
@@ -58,6 +58,11 @@ contains
 
     if (.not. integrate_energy) then
        bs % burn_s % ydot(net_ienuc) = ZERO
+    endif
+
+    ! apply fudge factor:
+    if (react_boost > ZERO) then
+       bs % burn_s % ydot(:) = react_boost * bs % burn_s % ydot(:)
     endif
 
     ! For burning_mode == 3, limit the rates.

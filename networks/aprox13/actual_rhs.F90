@@ -33,8 +33,8 @@ contains
 
     use screening_module, only: screening_init
     use aprox_rates_module, only: rates_init
-    use actual_network, only: cu_use_tables
-    use parallel, only: parallel_IOProcessor
+    use extern_probin_module, only: use_tables
+    use amrex_paralleldescriptor_module, only: parallel_IOProcessor => amrex_pd_ioprocessor
 
     implicit none
 
@@ -44,7 +44,7 @@ contains
 
     call screening_init()
 
-    if (cu_use_tables) then
+    if (use_tables) then
 
        if (parallel_IOProcessor()) then
           print *, ""
@@ -66,7 +66,7 @@ contains
 
     !$acc routine seq
 
-    use bl_constants_module, only: ZERO
+    use amrex_constants_module, only: ZERO
 
     implicit none
 
@@ -138,8 +138,7 @@ contains
 
     !$acc routine seq
 
-    use bl_types
-    use bl_constants_module, only: ZERO
+    use amrex_constants_module, only: ZERO
     use eos_module
 
     implicit none
@@ -219,7 +218,7 @@ contains
 
     !$acc routine seq
 
-    use actual_network, only: cu_use_tables
+    use extern_probin_module, only: use_tables
 
     implicit none
 
@@ -241,7 +240,7 @@ contains
     y    = state % xn * aion_inv
 
     ! Get the raw reaction rates
-    if (cu_use_tables) then
+    if (use_tables) then
        call aprox13tab(temp, rho, ratraw, dratrawdt, dratrawdd)
     else
        call aprox13rat(temp, rho, ratraw, dratrawdt, dratrawdd)
@@ -395,7 +394,6 @@ contains
 
 
 
-
   ! Form the table
 
   subroutine create_rates_table()
@@ -545,7 +543,6 @@ contains
   end function h3
 
 
-
   ! Evaluates the right hand side of the aprox13 ODEs
 #ifdef CUDA
   attributes(device) &
@@ -554,8 +551,8 @@ contains
 
     !$acc routine seq
 
-    use bl_constants_module, only: ZERO, SIXTH
-    use microphysics_math_module
+    use amrex_constants_module, only: ZERO, SIXTH
+    use microphysics_math_module, only: esum
 
     implicit none
 
@@ -993,7 +990,8 @@ contains
 
     use tfactors_module
     use aprox_rates_module
-    use bl_constants_module, only: ZERO
+    use amrex_constants_module, only: ZERO
+    use extern_probin_module, only: use_c12ag_deboer17
 
     implicit none
 
@@ -1016,11 +1014,18 @@ contains
     ! get the temperature factors
     call get_tfactors(btemp, tf)
 
-
-    ! c12(a,g)o16
-    call rate_c12ag(tf,bden, &
+    ! Determine which c12(a,g)o16 rate to use
+    if (use_c12ag_deboer17) then
+    ! deboer + 2017 c12(a,g)o16 rate
+       call rate_c12ag_deboer17(tf,bden, &
                     ratraw(ircag),dratrawdt(ircag),dratrawdd(ircag), &
                     ratraw(iroga),dratrawdt(iroga),dratrawdd(iroga))
+    else
+    ! 1.7 times cf88 c12(a,g)o16 rate
+       call rate_c12ag(tf,bden, &
+                    ratraw(ircag),dratrawdt(ircag),dratrawdd(ircag), &
+                    ratraw(iroga),dratrawdt(iroga),dratrawdd(iroga))
+    endif
 
     ! triple alpha to c12
     call rate_tripalf(tf,bden, &
@@ -1185,7 +1190,7 @@ contains
 
     !$acc routine seq
 
-    use bl_constants_module, only: ZERO, ONE
+    use amrex_constants_module, only: ZERO, ONE
     use screening_module, only: screen5, plasma_state, fill_plasma_state
 
     implicit none

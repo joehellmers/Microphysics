@@ -4,9 +4,9 @@
 program test_react
 
   use BoxLib
-  use bl_constants_module
-  use bl_types
-  use bl_space
+  use amrex_constants_module
+  use amrex_fort_module, only : rt => amrex_real
+
   use f2kcli
   use box_util_module
   use ml_layout_module
@@ -18,7 +18,7 @@ program test_react
   use runtime_init_module
   use sdc_type_module
   use microphysics_module
-  use actual_integrator_module
+  use integrator_module
   use integrator_module, only: integrator
   use eos_type_module, only : eos_t, eos_get_small_temp, eos_get_small_dens
   use eos_module, only: eos, eos_input_rt
@@ -33,7 +33,7 @@ program test_react
   ! Conventional fluid state multifabs
   type(multifab) , allocatable :: s(:)
 
-  real(kind=dp_t) :: dx(1, MAX_SPACEDIM)
+  real(rt) :: dx(1, MAX_SPACEDIM)
 
   logical :: pmask(MAX_SPACEDIM)
 
@@ -52,9 +52,9 @@ program test_react
 
   integer :: itemp, irho, ispec, ispec_old, irodot, irho_hnuc
 
-  real(kind=dp_t), pointer :: sp(:,:,:,:)
+  real(rt), pointer :: sp(:,:,:,:)
 
-  real(kind=dp_t), allocatable :: state(:,:,:,:)
+  real(rt), allocatable :: state(:,:,:,:)
 
   integer :: lo(MAX_SPACEDIM), hi(MAX_SPACEDIM)
   integer :: domlo(MAX_SPACEDIM), domhi(MAX_SPACEDIM)
@@ -62,14 +62,14 @@ program test_react
   type (sdc_t) :: sdc_state_in, sdc_state_out
   type (eos_t) :: eos_state
 
-  real (kind=dp_t) :: dlogrho, dlogT
-  real (kind=dp_t), allocatable :: xn_zone(:, :)
+  real (rt) :: dlogrho, dlogT
+  real (rt), allocatable :: xn_zone(:, :)
 
-  real (kind=dp_t) :: sum_X
+  real (rt) :: sum_X
 
-  real (kind=dp_t) :: start_time, end_time
+  real (rt) :: start_time, end_time
 
-  real (kind=dp_t) :: sum_spec
+  real (rt) :: sum_spec
 
   character (len=256) :: out_name
 
@@ -102,7 +102,7 @@ program test_react
   call microphysics_init(small_temp=small_temp, small_dens=small_dens)
 
   ! the integrator would normally be initialized via actual_burner
-  call actual_integrator_init()
+  call integrator_init()
   
   call eos_get_small_temp(small_temp)
   print *, "small_temp = ", small_temp
@@ -181,7 +181,7 @@ program test_react
      start_time = parallel_wtime()
 
      !$OMP PARALLEL DO PRIVATE(ii,jj,kk,j) &
-     !$OMP PRIVATE(burn_state_in, burn_state_out) &
+     !$OMP PRIVATE(eos_state, sum_spec, sdc_state_in, sdc_state_out) &
      !$OMP REDUCTION(+:n_rhs_avg) REDUCTION(MAX:n_rhs_max) REDUCTION(MIN:n_rhs_min) &
      !$OMP SCHEDULE(DYNAMIC,1)
 

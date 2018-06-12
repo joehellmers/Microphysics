@@ -1,10 +1,14 @@
 module integration_data
 
-  use network, only: nspec
-  use bl_types, only: dp_t
+  use amrex_fort_module, only : rt => amrex_real
 
   implicit none
 
-  ! Multiplicative inverse of atomic numbers.
+  type :: integration_status_t
+
+     real(rt) :: atol_spec, atol_enuc, atol_temp
+     real(rt) :: rtol_spec, rtol_enuc, rtol_temp
+
+  end type integration_status_t
 
 end module integration_data

@@ -1,5 +1,7 @@
 
 module microphysics_math_module
+  
+  use amrex_error_module
 
   implicit none
 
@@ -14,21 +16,21 @@ contains
 
     !$acc routine seq
 
-    use bl_error_module, only: bl_error
-    use bl_types, only: dp_t
+    use amrex_error_module, only: amrex_error
+    use amrex_fort_module, only : rt => amrex_real
 
     implicit none
 
-    real(dp_t), intent(in) :: array(:)
-    real(dp_t) :: esum
+    real(rt), intent(in) :: array(:)
+    real(rt) :: esum
 
     integer :: i, j, k, km
 
     ! Note that for performance reasons we are not
     ! initializing the unused values in this array.
 
-    real(dp_t) :: partials(0:9)
-    real(dp_t) :: x, y, z, hi, lo
+    real(rt) :: partials(0:9)
+    real(rt) :: x, y, z, hi, lo
 
     ! j keeps track of how many entries in partials are actually used.
     ! The algorithm we model this off of, written in Python, simply
@@ -64,7 +66,7 @@ contains
           hi = x + y
           lo = y - (hi - x)
 
-          if (lo .ne. 0.0_dp_t) then
+          if (lo .ne. 0.0_rt) then
              partials(j) = lo
              j = j + 1
           endif
@@ -89,21 +91,21 @@ contains
 
     !$acc routine seq
 
-    use bl_error_module, only: bl_error
-    use bl_types, only: dp_t
+    use amrex_error_module, only: amrex_error
+    use amrex_fort_module, only : rt => amrex_real
 
     implicit none
 
-    real(dp_t), intent(in) :: array(:)
-    real(dp_t) :: esum
+    real(rt), intent(in) :: array(:)
+    real(rt) :: esum
 
     integer :: i, j, k, km
 
     ! Note that for performance reasons we are not
     ! initializing the unused values in this array.
 
-    real(dp_t) :: partials(0:11)
-    real(dp_t) :: x, y, z, hi, lo
+    real(rt) :: partials(0:11)
+    real(rt) :: x, y, z, hi, lo
 
     ! j keeps track of how many entries in partials are actually used.
     ! The algorithm we model this off of, written in Python, simply
@@ -164,21 +166,21 @@ contains
 
     !$acc routine seq
 
-    use bl_error_module, only: bl_error
-    use bl_types, only: dp_t
+    use amrex_error_module, only: amrex_error
+    use amrex_fort_module, only : rt => amrex_real
 
     implicit none
 
-    real(dp_t), intent(in) :: array(:)
-    real(dp_t) :: esum
+    real(rt), intent(in) :: array(:)
+    real(rt) :: esum
 
     integer :: i, j, k, km
 
     ! Note that for performance reasons we are not
     ! initializing the unused values in this array.
 
-    real(dp_t) :: partials(0:12)
-    real(dp_t) :: x, y, z, hi, lo
+    real(rt) :: partials(0:12)
+    real(rt) :: x, y, z, hi, lo
 
     ! j keeps track of how many entries in partials are actually used.
     ! The algorithm we model this off of, written in Python, simply
@@ -214,7 +216,7 @@ contains
           hi = x + y
           lo = y - (hi - x)
 
-          if (lo .ne. 0.0_dp_t) then
+          if (lo .ne. 0.0_rt) then
              partials(j) = lo
              j = j + 1
           endif
@@ -239,21 +241,21 @@ contains
 
     !$acc routine seq
 
-    use bl_error_module, only: bl_error
-    use bl_types, only: dp_t
+    use amrex_error_module, only: amrex_error
+    use amrex_fort_module, only : rt => amrex_real
 
     implicit none
 
-    real(dp_t), intent(in) :: array(:)
-    real(dp_t) :: esum
+    real(rt), intent(in) :: array(:)
+    real(rt) :: esum
 
     integer :: i, j, k, km
 
     ! Note that for performance reasons we are not
     ! initializing the unused values in this array.
 
-    real(dp_t) :: partials(0:14)
-    real(dp_t) :: x, y, z, hi, lo
+    real(rt) :: partials(0:14)
+    real(rt) :: x, y, z, hi, lo
 
     ! j keeps track of how many entries in partials are actually used.
     ! The algorithm we model this off of, written in Python, simply
@@ -314,21 +316,21 @@ contains
 
     !$acc routine seq
 
-    use bl_error_module, only: bl_error
-    use bl_types, only: dp_t
+    use amrex_error_module, only: amrex_error
+    use amrex_fort_module, only : rt => amrex_real
 
     implicit none
 
-    real(dp_t), intent(in) :: array(:)
-    real(dp_t) :: esum
+    real(rt), intent(in) :: array(:)
+    real(rt) :: esum
 
     integer :: i, j, k, km
 
     ! Note that for performance reasons we are not
     ! initializing the unused values in this array.
 
-    real(dp_t) :: partials(0:16)
-    real(dp_t) :: x, y, z, hi, lo
+    real(rt) :: partials(0:16)
+    real(rt) :: x, y, z, hi, lo
 
     ! j keeps track of how many entries in partials are actually used.
     ! The algorithm we model this off of, written in Python, simply
@@ -389,21 +391,21 @@ contains
 
     !$acc routine seq
 
-    use bl_error_module, only: bl_error
-    use bl_types, only: dp_t
+    use amrex_error_module, only: amrex_error
+    use amrex_fort_module, only : rt => amrex_real
 
     implicit none
 
-    real(dp_t), intent(in) :: array(:)
-    real(dp_t) :: esum
+    real(rt), intent(in) :: array(:)
+    real(rt) :: esum
 
     integer :: i, j, k, km
 
     ! Note that for performance reasons we are not
     ! initializing the unused values in this array.
 
-    real(dp_t) :: partials(0:19)
-    real(dp_t) :: x, y, z, hi, lo
+    real(rt) :: partials(0:19)
+    real(rt) :: x, y, z, hi, lo
 
     ! j keeps track of how many entries in partials are actually used.
     ! The algorithm we model this off of, written in Python, simply
@@ -464,21 +466,21 @@ contains
 
     !$acc routine seq
 
-    use bl_error_module, only: bl_error
-    use bl_types, only: dp_t
+    use amrex_error_module, only: amrex_error
+    use amrex_fort_module, only : rt => amrex_real
 
     implicit none
 
-    real(dp_t), intent(in) :: array(:)
-    real(dp_t) :: esum
+    real(rt), intent(in) :: array(:)
+    real(rt) :: esum
 
     integer :: i, j, k, km
 
     ! Note that for performance reasons we are not
     ! initializing the unused values in this array.
 
-    real(dp_t) :: partials(0:24)
-    real(dp_t) :: x, y, z, hi, lo
+    real(rt) :: partials(0:24)
+    real(rt) :: x, y, z, hi, lo
 
     ! j keeps track of how many entries in partials are actually used.
     ! The algorithm we model this off of, written in Python, simply
@@ -539,21 +541,21 @@ contains
 
     !$acc routine seq
 
-    use bl_error_module, only: bl_error
-    use bl_types, only: dp_t
+    use amrex_error_module, only: amrex_error
+    use amrex_fort_module, only : rt => amrex_real
 
     implicit none
 
-    real(dp_t), intent(in) :: array(:)
-    real(dp_t) :: esum
+    real(rt), intent(in) :: array(:)
+    real(rt) :: esum
 
     integer :: i, j, k, km
 
     ! Note that for performance reasons we are not
     ! initializing the unused values in this array.
 
-    real(dp_t) :: partials(0:25)
-    real(dp_t) :: x, y, z, hi, lo
+    real(rt) :: partials(0:25)
+    real(rt) :: x, y, z, hi, lo
 
     ! j keeps track of how many entries in partials are actually used.
     ! The algorithm we model this off of, written in Python, simply
@@ -614,21 +616,21 @@ contains
 
     !$acc routine seq
 
-    use bl_error_module, only: bl_error
-    use bl_types, only: dp_t
+    use amrex_error_module, only: amrex_error
+    use amrex_fort_module, only : rt => amrex_real
 
     implicit none
 
-    real(dp_t), intent(in) :: array(:)
-    real(dp_t) :: esum
+    real(rt), intent(in) :: array(:)
+    real(rt) :: esum
 
     integer :: i, j, k, km
 
     ! Note that for performance reasons we are not
     ! initializing the unused values in this array.
 
-    real(dp_t) :: partials(0:2)
-    real(dp_t) :: x, y, z, hi, lo
+    real(rt) :: partials(0:2)
+    real(rt) :: x, y, z, hi, lo
 
     ! j keeps track of how many entries in partials are actually used.
     ! The algorithm we model this off of, written in Python, simply
@@ -689,21 +691,21 @@ contains
 
     !$acc routine seq
 
-    use bl_error_module, only: bl_error
-    use bl_types, only: dp_t
+    use amrex_error_module, only: amrex_error
+    use amrex_fort_module, only : rt => amrex_real
 
     implicit none
 
-    real(dp_t), intent(in) :: array(:)
-    real(dp_t) :: esum
+    real(rt), intent(in) :: array(:)
+    real(rt) :: esum
 
     integer :: i, j, k, km
 
     ! Note that for performance reasons we are not
     ! initializing the unused values in this array.
 
-    real(dp_t) :: partials(0:3)
-    real(dp_t) :: x, y, z, hi, lo
+    real(rt) :: partials(0:3)
+    real(rt) :: x, y, z, hi, lo
 
     ! j keeps track of how many entries in partials are actually used.
     ! The algorithm we model this off of, written in Python, simply
@@ -764,21 +766,21 @@ contains
 
     !$acc routine seq
 
-    use bl_error_module, only: bl_error
-    use bl_types, only: dp_t
+    use amrex_error_module, only: amrex_error
+    use amrex_fort_module, only : rt => amrex_real
 
     implicit none
 
-    real(dp_t), intent(in) :: array(:)
-    real(dp_t) :: esum
+    real(rt), intent(in) :: array(:)
+    real(rt) :: esum
 
     integer :: i, j, k, km
 
     ! Note that for performance reasons we are not
     ! initializing the unused values in this array.
 
-    real(dp_t) :: partials(0:4)
-    real(dp_t) :: x, y, z, hi, lo
+    real(rt) :: partials(0:4)
+    real(rt) :: x, y, z, hi, lo
 
     ! j keeps track of how many entries in partials are actually used.
     ! The algorithm we model this off of, written in Python, simply
@@ -839,21 +841,21 @@ contains
 
     !$acc routine seq
 
-    use bl_error_module, only: bl_error
-    use bl_types, only: dp_t
+    use amrex_error_module, only: amrex_error
+    use amrex_fort_module, only : rt => amrex_real
 
     implicit none
 
-    real(dp_t), intent(in) :: array(:)
-    real(dp_t) :: esum
+    real(rt), intent(in) :: array(:)
+    real(rt) :: esum
 
     integer :: i, j, k, km
 
     ! Note that for performance reasons we are not
     ! initializing the unused values in this array.
 
-    real(dp_t) :: partials(0:5)
-    real(dp_t) :: x, y, z, hi, lo
+    real(rt) :: partials(0:5)
+    real(rt) :: x, y, z, hi, lo
 
     ! j keeps track of how many entries in partials are actually used.
     ! The algorithm we model this off of, written in Python, simply
@@ -914,21 +916,21 @@ contains
 
     !$acc routine seq
 
-    use bl_error_module, only: bl_error
-    use bl_types, only: dp_t
+    use amrex_error_module, only: amrex_error
+    use amrex_fort_module, only : rt => amrex_real
 
     implicit none
 
-    real(dp_t), intent(in) :: array(:)
-    real(dp_t) :: esum
+    real(rt), intent(in) :: array(:)
+    real(rt) :: esum
 
     integer :: i, j, k, km
 
     ! Note that for performance reasons we are not
     ! initializing the unused values in this array.
 
-    real(dp_t) :: partials(0:6)
-    real(dp_t) :: x, y, z, hi, lo
+    real(rt) :: partials(0:6)
+    real(rt) :: x, y, z, hi, lo
 
     ! j keeps track of how many entries in partials are actually used.
     ! The algorithm we model this off of, written in Python, simply
@@ -989,21 +991,21 @@ contains
 
     !$acc routine seq
 
-    use bl_error_module, only: bl_error
-    use bl_types, only: dp_t
+    use amrex_error_module, only: amrex_error
+    use amrex_fort_module, only : rt => amrex_real
 
     implicit none
 
-    real(dp_t), intent(in) :: array(:)
-    real(dp_t) :: esum
+    real(rt), intent(in) :: array(:)
+    real(rt) :: esum
 
     integer :: i, j, k, km
 
     ! Note that for performance reasons we are not
     ! initializing the unused values in this array.
 
-    real(dp_t) :: partials(0:7)
-    real(dp_t) :: x, y, z, hi, lo
+    real(rt) :: partials(0:7)
+    real(rt) :: x, y, z, hi, lo
 
     ! j keeps track of how many entries in partials are actually used.
     ! The algorithm we model this off of, written in Python, simply
@@ -1064,21 +1066,21 @@ contains
 
     !$acc routine seq
 
-    use bl_error_module, only: bl_error
-    use bl_types, only: dp_t
+    use amrex_error_module, only: amrex_error
+    use amrex_fort_module, only : rt => amrex_real
 
     implicit none
 
-    real(dp_t), intent(in) :: array(:)
-    real(dp_t) :: esum
+    real(rt), intent(in) :: array(:)
+    real(rt) :: esum
 
     integer :: i, j, k, km
 
     ! Note that for performance reasons we are not
     ! initializing the unused values in this array.
 
-    real(dp_t) :: partials(0:8)
-    real(dp_t) :: x, y, z, hi, lo
+    real(rt) :: partials(0:8)
+    real(rt) :: x, y, z, hi, lo
 
     ! j keeps track of how many entries in partials are actually used.
     ! The algorithm we model this off of, written in Python, simply

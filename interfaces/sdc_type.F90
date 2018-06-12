@@ -1,13 +1,17 @@
 module sdc_type_module
 
+  use amrex_fort_module, only : rt => amrex_real
   use actual_network, only: nspec
-  use bl_types, only: dp_t
 
   implicit none
 
   ! A generic structure holding data necessary to do a nuclear burn
   ! in the SDC formalism.
 
+  ! these indicies represent the order that the conserved state comes
+  ! into the ODE integration from the hydro code.
+  !
+  ! they also represent the order of the advective sources
   integer, parameter :: SEDEN = 1
   integer, parameter :: SEINT = 2
   integer, parameter :: SFS   = 3
@@ -21,8 +25,8 @@ module sdc_type_module
 
   type :: sdc_t
 
-     real(dp_t) :: y(SVAR)
-     real(dp_t) :: ydot_a(SVAR)
+     real(rt) :: y(SVAR)
+     real(rt) :: ydot_a(SVAR)
 
      logical :: T_from_eden
 
@@ -33,9 +37,7 @@ module sdc_type_module
      integer :: n_rhs
      integer :: n_jac
 
-     ! this is not actually needed for SDC, but included for compatibility
-     ! with the non-SDC
-     logical :: self_heat
+     integer :: sdc_iter
   end type sdc_t
 
 end module sdc_type_module

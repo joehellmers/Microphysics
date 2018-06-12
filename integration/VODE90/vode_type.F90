@@ -25,18 +25,25 @@ contains
 
     !$acc routine seq
     
-    use bl_types, only: dp_t
+    use amrex_fort_module, only : rt => amrex_real
     use actual_network, only: aion, nspec, nspec_evolve
     use burn_type_module, only: neqs
     use rpar_indices, only: n_rpar_comps
+    use extern_probin_module, only: renormalize_abundances
 
     implicit none
 
-    real(dp_t) :: y(neqs), rpar(n_rpar_comps)
+    real(rt) :: y(neqs), rpar(n_rpar_comps)
 
     ! Ensure that mass fractions always stay positive.
 
     y(1:nspec_evolve) = max(y(1:nspec_evolve), 1.d-200)
+
+    ! Renormalize the abundances as necessary.
+
+    if (renormalize_abundances) then
+       call renormalize_species(y, rpar)
+    endif
 
   end subroutine clean_state
 
@@ -47,16 +54,15 @@ contains
 
     !$acc routine seq
     
-    use bl_types, only: dp_t
+    use amrex_fort_module, only : rt => amrex_real
     use network, only: aion, aion_inv, nspec, nspec_evolve
     use burn_type_module, only: neqs
     use rpar_indices, only: n_rpar_comps, irp_nspec, n_not_evolved
 
     implicit none
 
-    real(dp_t) :: y(neqs), rpar(n_rpar_comps)
-
-    real(dp_t) :: nspec_sum
+    real(rt) :: y(neqs), rpar(n_rpar_comps)
+    real(rt) :: nspec_sum
 
     nspec_sum = &
          sum(y(1:nspec_evolve)) + &
@@ -75,17 +81,18 @@ contains
 
     !$acc routine seq
     
-    use bl_types, only: dp_t
-    use bl_constants_module, only: ZERO
+    use amrex_constants_module, only: ZERO
+    use amrex_fort_module, only : rt => amrex_real
     use extern_probin_module, only: call_eos_in_rhs, dt_crit
     use eos_type_module, only: eos_t, eos_input_rt, composition
     use eos_module, only: eos
+
     use rpar_indices, only: n_rpar_comps, irp_self_heat, irp_cp, irp_cv, irp_Told, irp_dcpdt, irp_dcvdt
     use burn_type_module, only: neqs
 
     implicit none
 
-    real(dp_t) :: y(neqs), rpar(n_rpar_comps)
+    real(rt) :: y(neqs), rpar(n_rpar_comps)
 
     type (eos_t) :: eos_state
 
@@ -150,7 +157,8 @@ contains
 
     !$acc routine seq
     
-    use bl_types, only: dp_t
+    use amrex_fort_module, only : rt => amrex_real
+
     use network, only: nspec, nspec_evolve, aion, aion_inv
     use eos_type_module, only: eos_t
     use rpar_indices, only: irp_dens, irp_nspec, irp_cp, irp_cv, irp_abar, irp_zbar, &
@@ -160,8 +168,8 @@ contains
     implicit none
 
     type (eos_t) :: state
-    real(dp_t)   :: rpar(n_rpar_comps)
-    real(dp_t)   :: y(neqs)
+    real(rt)   :: rpar(n_rpar_comps)
+    real(rt)   :: y(neqs)
 
     state % rho     = rpar(irp_dens)
     state % T       = y(net_itemp)
@@ -190,7 +198,6 @@ contains
 
     !$acc routine seq
     
-    use bl_types, only: dp_t
     use network, only: nspec, nspec_evolve, aion, aion_inv
     use eos_type_module, only: eos_t
     use rpar_indices, only: irp_dens, irp_nspec, irp_cp, irp_cv, irp_abar, irp_zbar, &
@@ -200,8 +207,8 @@ contains
     implicit none
 
     type (eos_t) :: state
-    real(dp_t)   :: rpar(n_rpar_comps)
-    real(dp_t)   :: y(neqs)
+    real(rt)   :: rpar(n_rpar_comps)
+    real(rt)   :: y(neqs)
 
     rpar(irp_dens) = state % rho
     y(net_itemp) = state % T
@@ -230,8 +237,8 @@ contains
 
     !$acc routine seq
     
-    use bl_types, only: dp_t
-    use bl_constants_module, only: ONE
+    use amrex_fort_module, only : rt => amrex_real
+    use amrex_constants_module, only: ONE
     use network, only: nspec, nspec_evolve, aion, aion_inv
     use rpar_indices, only: irp_dens, irp_nspec, irp_cp, irp_cv, irp_abar, irp_zbar, &
                             irp_ye, irp_eta, irp_cs, irp_dx, &
@@ -242,9 +249,9 @@ contains
     implicit none
 
     type (burn_t) :: state
-    real(dp_t)    :: rpar(n_rpar_comps)
-    real(dp_t)    :: y(neqs)
-    real(dp_t), optional :: ydot(neqs), jac(neqs, neqs)
+    real(rt)    :: rpar(n_rpar_comps)
+    real(rt)    :: y(neqs)
+    real(rt), optional :: ydot(neqs), jac(neqs, neqs)
 
     integer :: n
 
@@ -294,8 +301,7 @@ contains
 
     !$acc routine seq
     
-    use bl_types, only: dp_t
-    use bl_constants_module, only: ZERO
+    use amrex_constants_module, only: ZERO
     use network, only: nspec, nspec_evolve, aion, aion_inv
     use rpar_indices, only: irp_dens, irp_nspec, irp_cp, irp_cv, irp_abar, irp_zbar, &
                             irp_ye, irp_eta, irp_cs, irp_dx, &
@@ -306,8 +312,8 @@ contains
     implicit none
 
     type (burn_t) :: state
-    real(dp_t)    :: rpar(n_rpar_comps)
-    real(dp_t)    :: y(neqs)
+    real(rt)    :: rpar(n_rpar_comps)
+    real(rt)    :: y(neqs)
 
     integer :: n
 

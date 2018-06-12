@@ -9,9 +9,9 @@ program test_react
   use react_zones_module, only: pfidx_t, react_zones
   
   use BoxLib
-  use bl_constants_module
-  use bl_types
-  use bl_space
+  use amrex_constants_module
+  use amrex_fort_module, only : rt => amrex_real
+
   use f2kcli
   use box_util_module
   use ml_layout_module
@@ -36,7 +36,7 @@ program test_react
   ! Conventional fluid state multifabs
   type(multifab) , allocatable :: s(:)
 
-  real(kind=dp_t) :: dx(1, MAX_SPACEDIM)
+  real(rt) :: dx(1, MAX_SPACEDIM)
 
   logical :: pmask(MAX_SPACEDIM)
 
