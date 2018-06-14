@@ -167,6 +167,9 @@ contains
 
   ! This routine computes the nuclear reaction rate for 12C(a,g)16O and its inverse 
   ! using fit parameters from Deboer et al. 2017 (https://doi.org/10.1103/RevModPhys.89.035007).
+#ifdef CUDA
+  attributes(device) &
+#endif
   subroutine rate_c12ag_deboer17(tf,den,fr,dfrdt,dfrdd,rr,drrdt,drrdd)
 
     !$acc routine seq
