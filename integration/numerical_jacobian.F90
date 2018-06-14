@@ -137,8 +137,9 @@ contains
     type (eos_t) :: eos_state
 
     integer :: i, j
+#ifndef CUDA
     character(len=16) :: namei, namej  
-      
+#endif      
     ! Set up state
 
     call burn_to_eos(state, eos_state)
@@ -159,7 +160,8 @@ contains
     ! Now compute the numerical Jacobian.
     call actual_rhs(state_num)
     call numerical_jac(state_num)
-  
+
+#ifndef CUDA
 888 format(a,"-derivatives that don't match:")
 999 format(5x, "df(",a,")/dy(",a,")", g18.10, g18.10, g18.10)
 
@@ -200,7 +202,7 @@ contains
 
        enddo
     enddo
-
+#endif
   end subroutine test_numerical_jac
 
 end module numerical_jac_module
