@@ -176,13 +176,6 @@ contains
     spec_names(ife52) = "iron-52"
     spec_names(ini56) = "nickel-56"
 
-    allocate(aion(nspec))
-    allocate(zion(nspec))
-    allocate(nion(nspec))
-    allocate(bion(nspec))
-    allocate(mion(nspec))
-    allocate(wion(nspec))
-
     ! Set the number of nucleons in the element
     aion(ihe4)  = 4.0d0
     aion(ic12)  = 12.0d0
