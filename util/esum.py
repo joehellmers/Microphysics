@@ -22,6 +22,8 @@ esum_template = """
     real(rt) :: partials(0:@NUM_MINUS_ONE@)
     real(rt) :: x, y, z, hi, lo
 
+    !$gpu
+
     ! j keeps track of how many entries in partials are actually used.
     ! The algorithm we model this off of, written in Python, simply
     ! deletes array entries at the end of every outer loop iteration.

@@ -54,7 +54,7 @@ contains
 
 
 
-  AMREX_DEVICE subroutine actual_eos(input, state)
+  subroutine actual_eos(input, state)
 
     !$acc routine seq
 
@@ -70,6 +70,8 @@ contains
     double precision, parameter :: fac = ONE / (TWO*M_PI*hbar*hbar)**1.5d0
 
     double precision :: Tinv, rhoinv
+
+    !$gpu
 
     ! Calculate mu.
     

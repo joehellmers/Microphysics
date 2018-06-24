@@ -134,7 +134,7 @@ contains
   end function esum
 
 
-  AMREX_DEVICE function esum10(array) result(esum)
+  function esum10(array) result(esum)
 
     !$acc routine seq
 
@@ -153,6 +153,8 @@ contains
 
     real(rt) :: partials(0:9)
     real(rt) :: x, y, z, hi, lo
+
+    !$gpu
 
     ! j keeps track of how many entries in partials are actually used.
     ! The algorithm we model this off of, written in Python, simply
@@ -206,7 +208,7 @@ contains
   end function esum10
 
 
-  AMREX_DEVICE function esum12(array) result(esum)
+  function esum12(array) result(esum)
 
     !$acc routine seq
 
@@ -225,6 +227,8 @@ contains
 
     real(rt) :: partials(0:11)
     real(rt) :: x, y, z, hi, lo
+
+    !$gpu
 
     ! j keeps track of how many entries in partials are actually used.
     ! The algorithm we model this off of, written in Python, simply
@@ -278,7 +282,7 @@ contains
   end function esum12
 
 
-  AMREX_DEVICE function esum13(array) result(esum)
+  function esum13(array) result(esum)
 
     !$acc routine seq
 
@@ -297,6 +301,8 @@ contains
 
     real(rt) :: partials(0:12)
     real(rt) :: x, y, z, hi, lo
+
+    !$gpu
 
     ! j keeps track of how many entries in partials are actually used.
     ! The algorithm we model this off of, written in Python, simply
@@ -350,7 +356,7 @@ contains
   end function esum13
 
 
-  AMREX_DEVICE function esum15(array) result(esum)
+  function esum15(array) result(esum)
 
     !$acc routine seq
 
@@ -369,6 +375,8 @@ contains
 
     real(rt) :: partials(0:14)
     real(rt) :: x, y, z, hi, lo
+
+    !$gpu
 
     ! j keeps track of how many entries in partials are actually used.
     ! The algorithm we model this off of, written in Python, simply
@@ -422,7 +430,7 @@ contains
   end function esum15
 
 
-  AMREX_DEVICE function esum17(array) result(esum)
+  function esum17(array) result(esum)
 
     !$acc routine seq
 
@@ -441,6 +449,8 @@ contains
 
     real(rt) :: partials(0:16)
     real(rt) :: x, y, z, hi, lo
+
+    !$gpu
 
     ! j keeps track of how many entries in partials are actually used.
     ! The algorithm we model this off of, written in Python, simply
@@ -494,7 +504,7 @@ contains
   end function esum17
 
 
-  AMREX_DEVICE function esum20(array) result(esum)
+  function esum20(array) result(esum)
 
     !$acc routine seq
 
@@ -513,6 +523,8 @@ contains
 
     real(rt) :: partials(0:19)
     real(rt) :: x, y, z, hi, lo
+
+    !$gpu
 
     ! j keeps track of how many entries in partials are actually used.
     ! The algorithm we model this off of, written in Python, simply
@@ -566,7 +578,7 @@ contains
   end function esum20
 
 
-  AMREX_DEVICE function esum25(array) result(esum)
+  function esum25(array) result(esum)
 
     !$acc routine seq
 
@@ -585,6 +597,8 @@ contains
 
     real(rt) :: partials(0:24)
     real(rt) :: x, y, z, hi, lo
+
+    !$gpu
 
     ! j keeps track of how many entries in partials are actually used.
     ! The algorithm we model this off of, written in Python, simply
@@ -638,7 +652,7 @@ contains
   end function esum25
 
 
-  AMREX_DEVICE function esum26(array) result(esum)
+  function esum26(array) result(esum)
 
     !$acc routine seq
 
@@ -657,6 +671,8 @@ contains
 
     real(rt) :: partials(0:25)
     real(rt) :: x, y, z, hi, lo
+
+    !$gpu
 
     ! j keeps track of how many entries in partials are actually used.
     ! The algorithm we model this off of, written in Python, simply
@@ -710,7 +726,7 @@ contains
   end function esum26
 
 
-  AMREX_DEVICE function esum3(array) result(esum)
+  function esum3(array) result(esum)
 
     !$acc routine seq
 
@@ -729,6 +745,8 @@ contains
 
     real(rt) :: partials(0:2)
     real(rt) :: x, y, z, hi, lo
+
+    !$gpu
 
     ! j keeps track of how many entries in partials are actually used.
     ! The algorithm we model this off of, written in Python, simply
@@ -782,7 +800,7 @@ contains
   end function esum3
 
 
-  AMREX_DEVICE function esum4(array) result(esum)
+  function esum4(array) result(esum)
 
     !$acc routine seq
 
@@ -801,6 +819,8 @@ contains
 
     real(rt) :: partials(0:3)
     real(rt) :: x, y, z, hi, lo
+
+    !$gpu
 
     ! j keeps track of how many entries in partials are actually used.
     ! The algorithm we model this off of, written in Python, simply
@@ -854,7 +874,7 @@ contains
   end function esum4
 
 
-  AMREX_DEVICE function esum5(array) result(esum)
+  function esum5(array) result(esum)
 
     !$acc routine seq
 
@@ -873,6 +893,8 @@ contains
 
     real(rt) :: partials(0:4)
     real(rt) :: x, y, z, hi, lo
+
+    !$gpu
 
     ! j keeps track of how many entries in partials are actually used.
     ! The algorithm we model this off of, written in Python, simply
@@ -926,7 +948,7 @@ contains
   end function esum5
 
 
-  AMREX_DEVICE function esum6(array) result(esum)
+  function esum6(array) result(esum)
 
     !$acc routine seq
 
@@ -945,6 +967,8 @@ contains
 
     real(rt) :: partials(0:5)
     real(rt) :: x, y, z, hi, lo
+
+    !$gpu
 
     ! j keeps track of how many entries in partials are actually used.
     ! The algorithm we model this off of, written in Python, simply
@@ -998,7 +1022,7 @@ contains
   end function esum6
 
 
-  AMREX_DEVICE function esum7(array) result(esum)
+  function esum7(array) result(esum)
 
     !$acc routine seq
 
@@ -1017,6 +1041,8 @@ contains
 
     real(rt) :: partials(0:6)
     real(rt) :: x, y, z, hi, lo
+
+    !$gpu
 
     ! j keeps track of how many entries in partials are actually used.
     ! The algorithm we model this off of, written in Python, simply
@@ -1070,7 +1096,7 @@ contains
   end function esum7
 
 
-  AMREX_DEVICE function esum8(array) result(esum)
+  function esum8(array) result(esum)
 
     !$acc routine seq
 
@@ -1089,6 +1115,8 @@ contains
 
     real(rt) :: partials(0:7)
     real(rt) :: x, y, z, hi, lo
+
+    !$gpu
 
     ! j keeps track of how many entries in partials are actually used.
     ! The algorithm we model this off of, written in Python, simply
@@ -1142,7 +1170,7 @@ contains
   end function esum8
 
 
-  AMREX_DEVICE function esum9(array) result(esum)
+  function esum9(array) result(esum)
 
     !$acc routine seq
 
@@ -1161,6 +1189,8 @@ contains
 
     real(rt) :: partials(0:8)
     real(rt) :: x, y, z, hi, lo
+
+    !$gpu
 
     ! j keeps track of how many entries in partials are actually used.
     ! The algorithm we model this off of, written in Python, simply
