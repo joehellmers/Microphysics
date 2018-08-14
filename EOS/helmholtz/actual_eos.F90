@@ -124,7 +124,7 @@ private
     !$acc create(dd_sav, dd2_sav, ddi_sav, dd2i_sav) &
     !$acc create(do_coulomb, input_is_constant)
 
-public actual_eos, actual_eos_init, actual_eos_finalize
+public actual_eos, actual_eos_T_from_re, actual_eos_init, actual_eos_finalize
 
 contains
 
@@ -1230,6 +1230,366 @@ contains
 
 
 
+
+    subroutine actual_eos_T_from_re(temp_out, rho, e, abar, zbar, y_e)
+
+      !$acc routine seq
+
+      use amrex_constants_module, only: ZERO, HALF, TWO
+
+      implicit none
+
+      !..input arguments
+      !      type (reduced_eos_t), intent(inout) :: state
+      double precision, intent(inout) :: temp_out, rho, e, abar, zbar, y_e
+
+      !..rows to store EOS data
+      double precision :: temp_row, &
+                          den_row, &
+                          abar_row, &
+                          zbar_row, &
+                          ye_row, &
+                          etot_row, &
+                          ptot_row
+
+      !..declare local variables
+
+      logical :: converged
+      integer :: var, dvar, iter
+      double precision :: v_want
+      double precision :: xnew, xtol, dvdx, error, v
+      double precision :: v1, v2, dv1dt, dv1dr, dv2dt,dv2dr, delr, error1, error2, told, rold, tnew, rnew, v1i, v2i
+
+      double precision :: x,y,zz,zzi,deni,tempi,xni, &
+                          deepdt,dsepdt, &
+                          dpraddt,deraddt,dpiondt, &
+                          deiondt,dsraddt,dsiondt, &
+                          kt,ktinv,prad,erad,pion,eion, &
+                          sion,xnem,pele,eele,sele,pres,ener,entr, &
+                          dpresdt,denerdt, &
+                          s,temp,den,ytot1,ye
+
+        !..for the interpolations
+        integer          :: iat,jat
+        double precision :: free,df_t
+        double precision :: xt,xd,mxt,mxd, &
+                            si0t,si1t,si2t,si0mt,si1mt,si2mt, &
+                            si0d,si1d,si2d,si0md,si1md,si2md, &
+                            dsi0t,dsi1t,dsi2t,dsi0mt,dsi1mt,dsi2mt, &
+                            dsi0d,dsi1d,dsi2d,dsi0md,dsi1md,dsi2md, &
+                            z,din,fi(8)
+
+        !..for the coulomb corrections
+        double precision :: lami,inv_lami,plasg,plasgdt,ecoul,decouldt,pcoul,dpcouldt
+
+        double precision :: p_temp, e_temp
+
+        double precision :: smallt
+
+        !$gpu
+
+        !        call eos_get_small_temp(smallt)
+
+        smallt = 1.0d7
+
+!        temp_row = state % T
+!        den_row  = state % rho
+!        abar_row = state % abar
+!        zbar_row = state % zbar
+!        ye_row   = state % y_e
+
+        temp_row = temp_out
+        den_row  = rho
+        abar_row = abar
+        zbar_row = zbar
+        ye_row   = y_e
+        den   =  den_row
+        abar  = abar_row
+        zbar  = zbar_row
+        deni    = 1.0d0/den
+        ytot1 = 1.0d0 / abar
+        ye    = ye_row
+        din   = ye * den
+        
+        ! Initial setup for iterations
+
+        v_want = e
+        var  = iener
+        dvar = itemp
+
+        converged = .false.
+
+        do iter = 1, max_newton
+
+           temp  = temp_row
+           tempi   = 1.0d0/temp
+           kt      = kerg * temp
+           ktinv   = 1.0d0/kt
+
+           !..radiation section:
+           prad    = asoli3 * temp * temp * temp * temp
+           dpraddt = 4.0d0 * prad*tempi
+
+           erad    = 3.0d0 * prad*deni
+           deraddt = 3.0d0 * dpraddt*deni
+
+           !..ion section:
+           xni     = avo_eos * ytot1 * den
+
+           pion    = xni * kt
+           dpiondt = xni * kerg
+
+           eion    = 1.5d0 * pion*deni
+           deiondt = 1.5d0 * dpiondt*deni
+
+           !..hash locate this temperature and density
+           jat = int((dlog10(temp) - tlo)*tstpi) + 1
+           jat = max(1,min(jat,jtmax-1))
+           iat = int((dlog10(din) - dlo)*dstpi) + 1
+           iat = max(1,min(iat,itmax-1))
+
+           !..various differences
+           xt  = max( (temp - t(jat))*dti_sav(jat), 0.0d0)
+           xd  = max( (din - d(iat))*ddi_sav(iat), 0.0d0)
+           mxt = 1.0d0 - xt
+           mxd = 1.0d0 - xd
+
+           !..the six density and six temperature basis functions
+           si0t =   psi0(xt)
+           si1t =   psi1(xt)*dt_sav(jat)
+           si2t =   psi2(xt)*dt2_sav(jat)
+
+           si0mt =  psi0(mxt)
+           si1mt = -psi1(mxt)*dt_sav(jat)
+           si2mt =  psi2(mxt)*dt2_sav(jat)
+
+           si0d =   psi0(xd)
+           si1d =   psi1(xd)*dd_sav(iat)
+           si2d =   psi2(xd)*dd2_sav(iat)
+
+           si0md =  psi0(mxd)
+           si1md = -psi1(mxd)*dd_sav(iat)
+           si2md =  psi2(mxd)*dd2_sav(iat)
+
+           !..derivatives of the weight functions
+           dsi0t =   dpsi0(xt)*dti_sav(jat)
+           dsi1t =   dpsi1(xt)
+           dsi2t =   dpsi2(xt)*dt_sav(jat)
+
+           dsi0mt = -dpsi0(mxt)*dti_sav(jat)
+           dsi1mt =  dpsi1(mxt)
+           dsi2mt = -dpsi2(mxt)*dt_sav(jat)
+
+           !..access the table locations only once
+           fi(1)  = f(iat,jat)
+           fi(2)  = f(iat+1,jat)
+           fi(3)  = f(iat,jat+1)
+           fi(4)  = f(iat+1,jat+1)
+           fi(5)  = ft(iat,jat)
+           fi(6)  = ft(iat+1,jat)
+           fi(7)  = ft(iat,jat+1)
+           fi(8)  = ft(iat+1,jat+1)
+
+           free = fi(1)  *si0d*si0t   + fi(2)  *si0md*si0t &
+                + fi(3)  *si0d*si0mt  + fi(4)  *si0md*si0mt &
+                + fi(5)  *si0d*si1t   + fi(6)  *si0md*si1t &
+                + fi(7)  *si0d*si1mt  + fi(8)  *si0md*si1mt
+
+           df_t = fi(1)  *si0d*dsi0t   + fi(2)  *si0md*dsi0t &
+                + fi(3)  *si0d*dsi0mt  + fi(4)  *si0md*dsi0mt &
+                + fi(5)  *si0d*dsi1t   + fi(6)  *si0md*dsi1t &
+                + fi(7)  *si0d*dsi1mt  + fi(8)  *si0md*dsi1mt
+           
+           fi(1) = ftt(iat,jat)
+           fi(2) = ftt(iat+1,jat)
+           fi(3) = ftt(iat,jat+1)
+           fi(4) = ftt(iat+1,jat+1)
+           fi(5) = fd(iat,jat)
+           fi(6) = fd(iat+1,jat)
+           fi(7) = fd(iat,jat+1)
+           fi(8) = fd(iat+1,jat+1)
+
+           free = free &
+                + fi(1) *si0d*si2t   + fi(2) *si0md*si2t &
+                + fi(3) *si0d*si2mt  + fi(4) *si0md*si2mt &
+                + fi(5) *si1d*si0t   + fi(6) *si1md*si0t &
+                + fi(7) *si1d*si0mt  + fi(8) *si1md*si0mt
+
+           df_t = df_t &
+                + fi(1) *si0d*dsi2t   + fi(2) *si0md*dsi2t &
+                + fi(3) *si0d*dsi2mt  + fi(4) *si0md*dsi2mt &
+                + fi(5) *si1d*dsi0t   + fi(6) *si1md*dsi0t &
+                + fi(7) *si1d*dsi0mt  + fi(8) *si1md*dsi0mt
+
+           fi(1) = fdd(iat,jat)
+           fi(2) = fdd(iat+1,jat)
+           fi(3) = fdd(iat,jat+1)
+           fi(4) = fdd(iat+1,jat+1)
+           fi(5) = fdt(iat,jat)
+           fi(6) = fdt(iat+1,jat)
+           fi(7) = fdt(iat,jat+1)
+           fi(8) = fdt(iat+1,jat+1)
+
+           free = free &
+                + fi(1) *si2d*si0t   + fi(2) *si2md*si0t &
+                + fi(3) *si2d*si0mt  + fi(4) *si2md*si0mt &
+                + fi(5) *si1d*si1t   + fi(6) *si1md*si1t &
+                + fi(7) *si1d*si1mt  + fi(8) *si1md*si1mt
+
+           df_t = df_t &
+                + fi(1) *si2d*dsi0t   + fi(2) *si2md*dsi0t &
+                + fi(3) *si2d*dsi0mt  + fi(4) *si2md*dsi0mt &
+                + fi(5) *si1d*dsi1t   + fi(6) *si1md*dsi1t &
+                + fi(7) *si1d*dsi1mt  + fi(8) *si1md*dsi1mt
+           
+           fi(1) = fddt(iat,jat)
+           fi(2) = fddt(iat+1,jat)
+           fi(3) = fddt(iat,jat+1)
+           fi(4) = fddt(iat+1,jat+1)
+           fi(5) = fdtt(iat,jat)
+           fi(6) = fdtt(iat+1,jat)
+           fi(7) = fdtt(iat,jat+1)
+           fi(8) = fdtt(iat+1,jat+1)
+
+           free = free &
+                + fi(1) *si2d*si1t   + fi(2) *si2md*si1t &
+                + fi(3) *si2d*si1mt  + fi(4) *si2md*si1mt &
+                + fi(5) *si1d*si2t   + fi(6) *si1md*si2t &
+                + fi(7) *si1d*si2mt  + fi(8) *si1md*si2mt
+
+           df_t = df_t &
+                + fi(1) *si2d*dsi1t   + fi(2) *si2md*dsi1t &
+                + fi(3) *si2d*dsi1mt  + fi(4) *si2md*dsi1mt &
+                + fi(5) *si1d*dsi2t   + fi(6) *si1md*dsi2t &
+                + fi(7) *si1d*dsi2mt  + fi(8) *si1md*dsi2mt
+           
+           fi(1) = fddtt(iat,jat)
+           fi(2) = fddtt(iat+1,jat)
+           fi(3) = fddtt(iat,jat+1)
+           fi(4) = fddtt(iat+1,jat+1)
+
+           free = free &
+                + fi(1) *si2d*si2t   + fi(2) *si2md*si2t &
+                + fi(3) *si2d*si2mt  + fi(4) *si2md*si2mt
+
+           df_t = df_t &
+                + fi(1) *si2d*dsi2t   + fi(2) *si2md*dsi2t &
+                + fi(3) *si2d*dsi2mt  + fi(4) *si2md*dsi2mt
+
+           !..the desired electron-positron thermodynamic quantities
+           x       = ye * ye
+           sele    = -df_t * ye
+
+           eele    = ye*free + temp * sele
+           deepdt  = temp * dsepdt
+
+           !..coulomb section:
+           !..initialize
+           pcoul    = 0.0d0
+           dpcouldt = 0.0d0
+           ecoul    = 0.0d0
+           decouldt = 0.0d0
+
+           !..uniform background corrections only
+           !..from yakovlev & shalybkov 1989
+           !..lami is the average ion seperation
+           !..plasg is the plasma coupling parameter
+           ! z        = forth * pi
+           ! s        = z * xni
+
+           ! lami     = 1.0d0/s**onethird
+           ! inv_lami = 1.0d0/lami
+           ! z        = -onethird * lami
+
+           ! plasg    = zbar*zbar*esqu*ktinv*inv_lami
+           ! z        = -plasg * inv_lami
+           ! plasgdt  = -plasg*ktinv * kerg
+
+           !     TURN ON/OFF COULOMB
+           ! if ( do_coulomb ) then
+           !    !...yakovlev & shalybkov 1989 equations 82, 85, 86, 87
+           !    if (plasg .ge. 1.0D0) then
+           !       x        = plasg**(0.25d0)
+           !       y        = avo_eos * ytot1 * kerg
+           !       ecoul    = y * temp * (a1*plasg + b1*x + c1/x + d1)
+           !       pcoul    = onethird * den * ecoul
+
+           !       y        = avo_eos*ytot1*kt*(a1 + 0.25d0/plasg*(b1*x - c1/x))
+           !       decouldt = y * plasgdt + ecoul/temp
+
+           !       !...yakovlev & shalybkov 1989 equations 102, 103, 104
+           !    else if (plasg .lt. 1.0D0) then
+           !       x        = plasg*sqrt(plasg)
+           !       y        = plasg**b2
+           !       z        = c2 * x - onethird * a2 * y
+           !       pcoul    = -pion * z
+           !       ecoul    = 3.0d0 * pcoul/den
+
+           !       s        = 1.5d0*c2*x/plasg - onethird*a2*b2*y/plasg
+           !       dpcouldt = -dpiondt*z - pion*s*plasgdt
+
+           !       s        = 3.0d0/den
+           !       decouldt = s * dpcouldt
+
+           !    end if
+
+           !    ! Disable Coulomb corrections if they cause
+           !    ! the energy to go negative.
+
+           !    e_temp = erad + eion + eele + ecoul
+
+           !    if (e_temp .le. ZERO) then
+
+           !       ecoul    = 0.0d0
+           !       decouldt = 0.0d0
+
+           !    end if
+           ! end if
+
+           !..sum all the components
+           ener    = erad + eion + eele + ecoul
+           denerdt = deraddt + deiondt + deepdt + decouldt
+
+           if (converged) then
+
+              exit
+
+           else
+
+              x = temp_row
+              xtol = ttol
+
+              ! Do the calculation for the next guess for T/rho
+              xnew = x - (ener - e) / denerdt
+
+              ! Don't let the temperature change by more than a factor of two
+!              xnew = max(0.5d0 * x, min(xnew, 2.0d0 * x))
+
+              ! Don't let us freeze
+!              xnew = max(smallt, xnew)
+
+              ! Store the new temperature
+              temp_row = xnew
+
+              ! Compute the error from the last iteration
+              error = abs( (xnew - x) / x )
+
+              if (error .lt. xtol) converged = .true.
+
+              if (iter > 98) then
+                 print *, xnew, (ener - e), denerdt
+              end if
+
+           endif
+
+        enddo
+
+        temp_out = temp_row
+
+      end subroutine actual_eos_T_from_re
+
+
+
     subroutine actual_eos_init
 
         use amrex_error_module
@@ -1557,7 +1917,7 @@ contains
       double precision, intent(in) :: z
       double precision :: xpsi0r
       !$gpu
-      xpsi0r = z * z * (2.0d0*z - 3.0d0) + 1.0
+      xpsi0r = z * z * (2.0d0*z - 3.0d0) + 1.0d0
     end function xpsi0
 
     AMREX_DEVICE pure function xdpsi0(z) result(xdpsi0r)
