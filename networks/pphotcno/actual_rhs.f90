@@ -71,7 +71,9 @@ contains
 
     double precision :: ratraw(nrates), dratrawdt(nrates), dratrawdd(nrates)
     double precision :: ratdum(nrates), dratdumdt(nrates), dratdumdd(nrates)
-    double precision :: dratdumdy1(irsi2ni:irni2si), dratdumdy2(irsi2ni:irni2si)
+    
+	!TODO: What should these be?  Do we really even need them?
+	!double precision :: dratdumdy1(irsi2ni:irni2si), dratdumdy2(irsi2ni:irni2si)
     double precision :: scfac(nrates),  dscfacdt(nrates),  dscfacdd(nrates)
 
     ! Get the data from the state
@@ -98,8 +100,8 @@ contains
 
     rr % rates(1,:) = ratdum
     rr % rates(2,:) = dratdumdt
-    rr % rates(3,irsi2ni:irni2si) = dratdumdy1
-    rr % rates(4,irsi2ni:irni2si) = dratdumdy2
+    !rr % rates(3,irsi2ni:irni2si) = dratdumdy1
+    !rr % rates(4,irsi2ni:irni2si) = dratdumdy2
 
     rr % T_eval = temp
 
@@ -115,10 +117,10 @@ contains
 
     integer, parameter :: mp = 4
 
-    integer          :: j, iat
-    double precision :: x, x1, x2, x3, x4
-    double precision :: a, b, c, d, e, f, g, h, p, q
-    double precision :: alfa, beta, gama, delt
+	integer          i,j,imax,iat,ifirst
+	double precision ye,tlo,thi,tstp,bden_sav,btemp_sav,ye_sav
+	double precision x,x1,x2,x3,x4,a,b,c,d,e,f,g,h,p,q
+    double precision alfa,beta,gama,delt
 
     double precision :: dtab(nrates)
 
@@ -189,7 +191,7 @@ contains
     ! hand finish the three body reactions
     !dratrawdd(ir3a) = bden * dratrawdd(ir3a)
 
-  end subroutine iso7tab
+  end subroutine pphotcnotab
 
 
 
@@ -553,7 +555,8 @@ contains
   subroutine screen_iso7(btemp, bden, y, &
                          ratraw, dratrawdt, dratrawdd, &
                          ratdum, dratdumdt, dratdumdd, &
-                         dratdumdy1, dratdumdy2, &
+                         !TODO: Do we really need this?
+						 !dratdumdy1, dratdumdy2, &
                          scfac, dscfacdt, dscfacdd)
 
     use amrex_constants_module, only: ZERO, ONE
@@ -569,7 +572,8 @@ contains
     double precision :: y(nspec)
     double precision :: ratraw(nrates), dratrawdt(nrates), dratrawdd(nrates)
     double precision :: ratdum(nrates), dratdumdt(nrates), dratdumdd(nrates)
-    double precision :: dratdumdy1(irsi2ni:irni2si), dratdumdy2(irsi2ni:irni2si)
+	!TODO: Do we really need this?    
+	!double precision :: dratdumdy1(irsi2ni:irni2si), dratdumdy2(irsi2ni:irni2si)
     double precision :: scfac(nrates),  dscfacdt(nrates),  dscfacdd(nrates)
 
     integer          :: i, jscr
@@ -591,8 +595,9 @@ contains
        dscfacdd(i)   = ZERO
     enddo
 
-    dratdumdy1(:) = ZERO
-    dratdumdy2(:) = ZERO
+	!TODO: Get rid of these?    
+	!dratdumdy1(:) = ZERO
+    !dratdumdy2(:) = ZERO
 
     ! get the temperature factors
     call get_tfactors(btemp, tf)
@@ -753,8 +758,9 @@ contains
        denom     = (bden * y(ihe4))**3
 
        ratdum(irsi2ni)     = yeff_ca40*denom*ratdum(ircaag)*y(isi28)
-       dratdumdy1(irsi2ni) = 3.0d0 * ratdum(irsi2ni)/y(ihe4)
-       dratdumdy2(irsi2ni) = yeff_ca40*denom*ratdum(ircaag)
+       !TODO: Get rid of these?
+	   !dratdumdy1(irsi2ni) = 3.0d0 * ratdum(irsi2ni)/y(ihe4)
+       !dratdumdy2(irsi2ni) = yeff_ca40*denom*ratdum(ircaag)
        dratdumdt(irsi2ni)  = (yeff_ca40dt*ratdum(ircaag) &
             + yeff_ca40*dratdumdt(ircaag))*denom*y(isi28)*1.0d-9
        !dratdumdd(irsi2ni)  = 3.0d0*ratdum(irsi2ni)/bden &
@@ -767,12 +773,14 @@ contains
           ratdum(irni2si) = min(1.0d10,yeff_ti44*ratdum(irtiga)*zz)
 
           if (ratdum(irni2si) .eq. 1.0d10) then
-             dratdumdy1(irni2si) = 0.0d0
+             !TODO: Get rid of this?
+			 !dratdumdy1(irni2si) = 0.0d0
              dratdumdt(irni2si)  = 0.0d0
              !dratdumdd(irni2si)  = 0.0d0
 
           else
-             dratdumdy1(irni2si) = -3.0d0 * ratdum(irni2si)/y(ihe4)
+             !TODO: Get rid of this?
+			 !dratdumdy1(irni2si) = -3.0d0 * ratdum(irni2si)/y(ihe4)
              dratdumdt(irni2si)  = (yeff_ti44dt*ratdum(irtiga) &
                   + yeff_ti44*dratdumdt(irtiga))*zz*1.0d-9
              !dratdumdd(irni2si)  = -3.0d0 * ratdum(irni2si)/bden &
@@ -784,242 +792,876 @@ contains
   end subroutine screen_iso7
 
 
-
-  subroutine dfdy_isotopes_iso7(y,dfdy,ratdum,dratdumdy1,dratdumdy2)
+  !TODO: do we really need dratdumdy1 and dratdumdy2?
+  !subroutine dfdy_isotopes_pphotcno(y,dfdy,ratdum,dratdumdy1,dratdumdy2)
+  subroutine dfdy_isotopes_pphotcno(y,dfdy,ratdum)
 
     use network
-    use microphysics_math_module, only: esum3, esum4, esum8
+    use microphysics_math_module, only: esum3, esum4, esum5, esum7, esum8, &
+										esum14, esum20
 
     implicit none
 
-    ! this routine sets up the dense iso7 jacobian for the isotopes
+    ! this routine sets up the dense pphotcno jacobian for the isotopes
 
     double precision :: y(nspec), dfdy(nspec,nspec)
-    double precision :: ratdum(nrates), dratdumdy1(irsi2ni:irni2si), dratdumdy2(irsi2ni:irni2si)
+    double precision :: ratdum(nrates)
 
-    double precision :: b(8)
+	!TODO: Do we really need this?	
+	!double precision :: dratdumdy1(irsi2ni:irni2si), dratdumdy2(irsi2ni:irni2si)
 
-    ! set up the jacobian
-    ! 4he jacobian elements
-    ! d(he4)/d(he4)
-    b(1) = -1.5d0 * y(ihe4) * y(ihe4) * ratdum(ir3a)
-    b(2) = -y(ic12) * ratdum(ircag)
-    b(3) = -y(io16) * ratdum(iroag)
-    b(4) = -y(ine20) * ratdum(irneag)
-    b(5) = -y(img24) * ratdum(irmgag)
-    b(6) = -7.0d0 * ratdum(irsi2ni)
-    b(7) = -7.0d0 * dratdumdy1(irsi2ni) * y(ihe4)
-    b(8) =  7.0d0 * dratdumdy1(irni2si) * y(ini56)
-
-    dfdy(ihe4,ihe4) = esum8(b)
-
-    ! d(he4)/d(c12)
-    b(1) =  3.0d0 * ratdum(irg3a)
-    b(2) = -y(ihe4) * ratdum(ircag)
-    b(3) =  y(ic12) * ratdum(ir1212)
-    b(4) =  0.5d0 * y(io16) * ratdum(ir1216)
-
-    dfdy(ihe4,ic12) = esum4(b)
-
-    ! d(he4)/d(o16)
-    b(1) =  ratdum(iroga)
-    b(2) =  0.5d0 * y(ic12) * ratdum(ir1216)
-    b(3) =  y(io16) * ratdum(ir1616)
-    b(4) = -y(ihe4) * ratdum(iroag)
-
-    dfdy(ihe4,io16) = esum4(b)
-
-    ! d(he4)/d(ne20)
-    b(1) =  ratdum(irnega)
-    b(2) = -y(ihe4) * ratdum(irneag)
-
-    dfdy(ihe4,ine20) = sum(b(1:2))
-
-    ! d(he4)/d(mg24)
-    b(1) =  ratdum(irmgga)
-    b(2) = -y(ihe4) * ratdum(irmgag)
-
-    dfdy(ihe4,img24) = sum(b(1:2))
-
-    ! d(he4)/d(si28)
-    b(1) =  ratdum(irsiga)
-    b(2) = -7.0d0 * dratdumdy2(irsi2ni) * y(ihe4)
-
-    dfdy(ihe4,isi28) = sum(b(1:2))
-
-    ! d(he4)/d(ni56)
-    b(1) =  7.0d0 * ratdum(irni2si)
-
-    dfdy(ihe4,ini56) = b(1)
+    double precision :: b(20)
 
 
+	!!! Hydrogen-1 Elements
 
-    ! 12c jacobian elements
-    ! d(c12)/d(he4)
-    b(1) =  0.5d0 * y(ihe4) * y(ihe4) * ratdum(ir3a)
-    b(2) = -y(ic12) * ratdum(ircag)
+    ! d(h1)/d(h1)
+    b(1) = -2.0d0*y(ih1)*(ratdum(irpp) + ratdum(irpep))
+    b(2) = -y(ih2)*ratdum(irdpg)
+    b(3) = -y(ili7)*ratdum(irli7pa) 
+    b(4) = -y(ibe7)*ratdum(irbepg)
+    b(5) = -y(ihe3)*ratdum(irhep)
+    dfdy(ih1,ih1) = esum5(b)
 
-    dfdy(ic12,ihe4) = sum(b(1:2))
+    ! d(h1)/d(h2)
+    b(1) =  -y(ih1)*ratdum(irdpg)
+    dfdy(ih1,ih2) = b(1)
 
-    ! d(c12)/d(c12)
-    b(1) = -ratdum(irg3a)
-    b(2) = -y(ihe4) * ratdum(ircag)
-    b(3) = -2.0d0 * y(ic12) * ratdum(ir1212)
-    b(4) = -y(io16) * ratdum(ir1216)
+    ! d(h1)/d(he3)
+    b(1) =  2.0d0*y(ihe3)*ratdum(ir33)
+    b(2) =  -y(ih1)*ratdum(irhep)
+    dfdy(ih1,ihe3) = sum(b(1:2))
 
-    dfdy(ic12,ic12) = esum4(b)
+    ! d(h1)/d(li7)
+    b(1) =  -y(ih1)*ratdum(irli7pa)
+	dfdy(ih1,ili7) = b(1)
 
-    ! d(c12)/d(o16)
-    b(1) =  ratdum(iroga)
-    b(2) = -y(ic12) * ratdum(ir1216)
+    ! d(h1)/d(be7)
+    b(1) =  -y(ih1)*ratdum(irbepg)
+	dfdy(ih1,ibe7) = b(1)
 
-    dfdy(ic12,io16) = sum(b(1:2))
+    ! d(h1)/d(b8)
+    b(1) =  ratdum(irb8gp)
+	dfdy(ih1,ib8) = b(1)
 
 
-    ! 16o jacobian elements
-    ! d(o16)/d(he4)
-    b(1) =  y(ic12) * ratdum(ircag)
+	!!! Hydrogen-2 elements
+	! d(h2)/d(h1)    
+	b(1) =  -y(ih2)*ratdum(irdpg)
+	b(2) =  +y(ih1)*(ratdum(irpp) + ratdum(irpep))
+    b(3) =  -y(ih1)*ratdum(irdpg)
+	dfdy(ih2,ih1) = esum3(b)
+
+	!!! Helium-3 elements
+	! d(he3)/d(h1)    
+	b(1) = y(ih2)*ratdum(irdpg)
+	b(2) = -y(ihe3)*ratdum(irhep)
+    dfdy(ihe3,ih1) = sum(b(1:2))
+  
+	! d(he3)/d(h2)	
+	b(1) = y(ih1)*ratdum(irdpg)
+	dfdy(ihe3,ih2) = b(1)
+	
+	!TODO: What is this about? He-3 going to He-3?
+	! d(he3)/d(he3)
+	b(1) = -2.0d0*y(ihe3)*ratdum(ir33)
+    b(2) = -y(ihe4)*ratdum(irhe3ag)
+	b(3) = -y(ih1)*ratdum(irhep)
+	dfdy(ihe3,ihe3) = esum3(b)
+
+	! d(he3)/d(he4)
+	b(1) = -y(ihe3)*ratdum(irhe3ag)
+	dfdy(ihe3,ihe4) = b(1)
+
+	!!! Helium-4 elements
+	! d(he4)/d(h1)
+    b(1) = 2.0d0*y(ili7)*ratdum(irli7pa)
+    b(2) = +y(ihe3)*ratdum(irhep)
+	dfdy(ihe4,ih1) = sum(b(1:2))
+
+	! d(he4)/d(he3)
+    b(1) = y(ihe3)*ratdum(ir33)
+	b(2) = -y(ihe4)*ratdum(irhe3ag)
+	b(3) = +y(ih1)*ratdum(irhep)
+	dfdy(ihe4,ihe3) = esum3(b)      
+
+	! d(he4)/d(he4)
+	b(1) = -y(ihe3)*ratdum(irhe3ag)
+	dfdy(ihe4,ihe4) = b(1)
+
+	! d(he4)/d(li7)
+    b(1) = 2.0d0*y(ih1)*ratdum(irli7pa)
+	dfdy(ihe4,ili7) = b(1)
+
+	! d(he4)/d(b8)
+    b(1) = 2.0d0*ratdum(irb8ep)
+	dfdy(ihe4,ib8) = b(1)
+
+	!!! Lithium-7 elements
+	! d(li7)/d(h1)
+    b(1) = -y(ili7)*ratdum(irli7pa)
+    dfdy(ili7,ih1) = b(1)
+
+	! d(li7)/d(li7)
+	b(1) = -y(ih1)*ratdum(irli7pa)
+	dfdy(ili7,ili7) = b(1) 
+
+	! d(li7)/d(be7)
+	b(1) = ratdum(irbeec)
+	dfdy(ili7,ibe7) = b(1)
+
+	!!! Beryllium-7 elements
+	! d(be7)/d(h1)
+	b(1) = -y(ibe7)*ratdum(irbepg)
+	dfdy(ibe7,ih1) = b(1)
+
+	! d(be7)/d(he3)
+    b(1) = y(ihe4)*ratdum(irhe3ag)
+	dfdy(ibe7,ihe3) = b(1)
+
+	! d(be7)/d(he4)
+    b(1) = y(ihe3)*ratdum(irhe3ag)
+	dfdy(ibe7,ihe4) = b(1)
+
+	! d(be7)/d(be7)
+	b(1) = -y(ih1)*ratdum(irbepg)
+    b(2) = -ratdum(irbeec)
+	dfdy(ibe7,ibe7) = sum(b(1:2))
+
+	! d(be7)/d(b8)
+    b(1) = ratdum(irb8gp)
+	dfdy(ibe7,ib8) = b(1)
+
+	!!! Boron-8 elements
+	! d(b8)/d(h1)
+	b(1) = y(ibe7)*ratdum(irbepg)
+	dfdy(ib8,ih1) = b(1)
+
+	! d(b8)/d(be7)
+	b(1) = y(ih1)*ratdum(irbepg)
+	dfdy(ib8,ibe7) = b(1)
+	
+	! d(b8)/d(b8)
+	b(1) = -ratdum(irb8ep)
+    b(2) = -ratdum(irb8gp)
+	dfdy(ib8,ib8) = sum(b(1:2))
+
+!!! HOT CNO CONTRIBUTIONS !!!
+
+	!!! Hot CNO Hydrogen-1
+
+	! d(h1)/d(h1)
+	b(1) = dfdy(ih1,ih1)	
+	b(2) = -y(ic12)*ratdum(irc12pg)
+	b(3) = -y(ic13)*ratdum(irc13pg)
+	b(4) = -y(in14)*ratdum(irn14pg)
+	b(5) = -y(in15)*ratdum(irn15pa)
+	b(6) = -y(in15)*ratdum(irn15pg)
+	b(7) = -y(io16)*ratdum(iro16pg)
+	b(8) = -y(io17)*ratdum(iro17pa)
+	b(9) = -y(io17)*ratdum(iro17pg)
+	b(10) = -y(io18)*ratdum(iro18pa)
+	b(11) = -y(io18)*ratdum(iro18pg)
+	b(12) = -y(if19)*ratdum(irf19pa)
+	b(13) = -y(in13)*ratdum(irn13pg)
+	b(14) = -y(if17) * ratdum(irf17pa)
+	b(15) = -y(if17) * ratdum(irf17pg)
+	b(16) = -y(if18) * ratdum(irf18pa)
+	b(17) = -3.0d0*y(ine19)*ratdum(irne19pg)
+	b(18) = -2.0d0*y(ine20)*ratdum(irne20pg)
+	b(19) = -8.0d0 * y(img22)*ratdum(iralam1)*(1.0d0 - ratdum(irdelta1))
+	b(20) = -26.0d0 * y(is30)*ratdum(iralam2)*(1.0d0 - ratdum(irdelta2))
+
+	dfdy(ih1,ih1) = esum20(b)
+
+	! d(h1)/d(he4)
+    b(1) = dfdy(ih1,ihe4)
+	b(2) = +y(ic12)*ratdum(irc12ap)
+    b(3) = +y(in14)*ratdum(irn14ap)
+    b(4) = +y(in15)*ratdum(irn15ap)
+    b(5) = +y(io16)*ratdum(iro16ap)
+    b(6) = +y(io14)*ratdum(iro14ap)
+    b(7) = +y(io15)*ratdum(iro15ap)
+	dfdy(ih1,ihe4) = esum7(b)
+
+	! d(h1)/d(c12)	
+	b(1) = -y(ih1)*ratdum(irc12pg)
+	b(2) = +y(ihe4)*ratdum(irc12ap)
+	dfdy(ih1,ic12) = sum(b(1:2))
+
+	! d(h1)/d(c13)
+	b(1) = -y(ih1)*ratdum(irc13pg)
+	dfdy(ih1,ic13) = b(1)
+	
+	! d(h1)/d(n13)    
+	b(1) = ratdum(irn13gp)
+	b(2) = -y(ih1)*ratdum(irn13pg)
+	dfdy(ih1,in13) = sum(b(1:2))
+
+	! d(h1)/d(n14)
+	b(1) = ratdum(irn14gp)
+	b(2) = -y(ih1)*ratdum(irn14pg)
+	b(3) = +y(ihe4)*ratdum(irn14ap)
+	dfdy(ih1,in14) = esum3(b)
+
+	! d(h1)/d(n15)    
+	b(1) = -y(ih1)*ratdum(irn15pa)
+	b(2) = -y(ih1)*ratdum(irn15pg)
+	b(3) = +y(ihe4)*ratdum(irn15ap)
+	dfdy(ih1,in15) = esum3(b)
+
+	! d(h1)/d(o14)
+    b(1) = y(ihe4) * ratdum(iro14ap)
+	b(2) = +ratdum(iro14gp)
+	dfdy(ih1,io14) = sum(b(1:2))
+
+	! d(h1)/d(o15)
+	b(1) = ratdum(iro15gp)
+	b(2) = +y(ihe4) * ratdum(iro15ap)
+    dfdy(ih1,io15) = sum(b(1:2))
+
+	! d(h1)/d(o16)
+    b(1) = ratdum(iro16gp)
+	b(2) = -y(ih1)*ratdum(iro16pg)
+	b(3) = +y(ihe4)*ratdum(iro16ap)
+	dfdy(ih1,io16) = esum3(b)
+
+	! d(h1)/d(o17)
+	b(1) = -y(ih1)*ratdum(iro17pa)
+	b(2) = -y(ih1)*ratdum(iro17pg)
+    dfdy(ih1,io17) = sum(b(1:2))
+
+	! d(h1)/d(o18)
+    b(1) = -y(ih1)*ratdum(iro18pa)
+	b(2) = -y(ih1)*ratdum(iro18pg)
+	dfdy(ih1,io18) = sum(b(1:2))
+
+	! d(h1)/d(f17)
+    b(1) = ratdum(irf17gp)
+	b(2) = -y(ih1) * ratdum(irf17pa)
+	b(3) = -y(ih1) * ratdum(irf17pg)
+	dfdy(ih1,if17) = esum3(b)
+
+	! d(h1)/d(f18)
+	b(1) = ratdum(irf18gp)
+	b(2) = -y(ih1) * ratdum(irf18pa)
+	dfdy(ih1,if18) = sum(b(1:2))
+
+	! d(h1)/d(f19)	
+	b(1) = ratdum(irf19gp)
+	b(2) = -y(ih1)*ratdum(irf19pa)
+	dfdy(ih1,if19) = sum(b(1:2))
+
+	! d(h1)/d(ne18)
+    b(1) = ratdum(irne18gp)
+	dfdy(ih1,ine18) = b(1)
+
+	! d(h1)/d(ne19)  
+    b(1) = -3.0d0*y(ih1)*ratdum(irne19pg)
+	dfdy(ih1,ine19) = b(1)
+
+	! d(h1)/d(ne20)
+	b(1) = -2.0d0*y(ih1)*ratdum(irne20pg)
+	dfdy(ih1,ine20) = b(1)
+
+	! d(h1)/d(mg22)
+    b(1) = -8.0d0 * y(ih1) * ratdum(iralam1)*(1.0d0 - ratdum(irdelta1))
+	dfdy(ih1,img22) = b(1)
+
+	! d(h1)/d(s30)
+	b(1) = -26.0d0 * y(ih1) * ratdum(iralam2)*(1.0d0 - ratdum(irdelta2))
+    dfdy(ih1,is30) = b(1)
+
+!!! Hot CNO Helium-4
+
+	! d(he4)/d(h1)
+    b(1) = dfdy(ihe4,ih1)
+	b(2) = +y(in15) * ratdum(irn15pa)
+    b(3) = +y(io17) * ratdum(iro17pa)
+    b(4) = +y(io18) * ratdum(iro18pa)
+    b(5) = +y(if19) * ratdum(irf19pa)
+    b(6) = +y(if17) * ratdum(irf17pa)
+    b(7) = +y(if18) * ratdum(irf18pa)
+	dfdy(ihe4,ih1) = esum7(b)
+
+	! d(he4)/d(he4)
+    b(1) =   dfdy(ihe4,ihe4)
+    b(2) = -y(ic12) * ratdum(irc12ap)
+    b(3) = -y(in14) * ratdum(irn14ap)
+    b(4) = -y(in15) * ratdum(irn15ap)
+    b(5) = -y(io16) * ratdum(iro16ap)
+    b(6) = -y(io14) * ratdum(iro14ap)
+    b(7) = -y(io15) * ratdum(iro15ap)
+    b(8) = -1.5d0 * y(ihe4) * y(ihe4) * ratdum(ir3a)
+    b(9) = -y(io16) * ratdum(iroag)
+    b(10) = -2.0d0*y(img22) * ratdum(iralam1) * ratdum(irdelta1)
+    b(11) = -6.5d0*y(is30) * ratdum(iralam2) * ratdum(irdelta2)
+    b(12) = -y(ic12) * ratdum(ircag)
+    b(13) = -y(ine18) * ratdum(irne18ap)
+    b(14) = -y(io15) * ratdum(iro15ag)
+	dfdy(ihe4,ihe4) = esum14(b)
+
+	! d(he4)/d(c12)      
+	b(1) = -y(ihe4)*ratdum(irc12ap)
+    b(2) = +3.0d0 * ratdum(irg3a)
+    b(3) = -y(ihe4) * ratdum(ircag)
+	dfdy(ihe4,ic12) = esum3(b)
+
+	! d(he4)d(in14)
+    b(1) = -y(ihe4)*ratdum(irn14ap)
+	dfdy(ihe4,in14) = b(1)
+
+	! d(he4)/d(n15)
+    b(1) = y(ih1)*ratdum(irn15pa) - y(ihe4)*ratdum(irn15ap)
+	dfdy(ihe4,in15) = b(1)
+	
+	! d(he4)/d(o14)    
+	b(1) = -y(ihe4) * ratdum(iro14ap)
+	dfdy(ihe4,io14) = b(1)
+
+	! d(he4)/d(o15)
+	b(1) = -y(ihe4) * ratdum(iro15ap)
+	b(2) = -y(ihe4) * ratdum(iro15ag)
+	dfdy(ihe4,io15) = b(2)
+
+	! d(he4)/d(o16)
+    b(1) = -y(ihe4)*ratdum(iro16ap)
+    b(2) = -y(ihe4) * ratdum(iroag)
+    b(3) = +ratdum(iroga)
+	dfdy(ihe4,io16) = esum3(b)
+
+	! d(he4)/d(o17)    
+  	b(1) = y(ih1)*ratdum(iro17pa)
+	dfdy(ihe4,io17) = b(1)
+
+	! d(he4)/d(o18)
+    b(1) = y(ih1)*ratdum(iro18pa)
+	dfdy(ihe4,io18) = b(1)
+
+	! d(he4)/d(f17)
+    b(1) = y(ih1) * ratdum(irf17pa)
+	dfdy(ihe4,if17) = b(1)
+
+	! d(he4)/d(f18)
+    b(1) = y(ih1) * ratdum(irf18pa)
+	dfdy(ihe4,if18) = b(1)
+
+	! d(he4)/d(f19)
+    b(1) = y(ih1)*ratdum(irf19pa)
+	dfdy(ihe4,if19) = b(1)
+
+	! d(he4)/d(ne18)
+    b(1) = -y(ihe4) * ratdum(irne18ap)
+	dfdy(ihe4,ine18) = b(1)
+	
+	! d(he4)/d(mg22)
+    b(1) = -2.0d0*y(ihe4)*ratdum(iralam1)*ratdum(irdelta1)
+	dfdy(ihe4,img22) = b(1)
+
+	! d(he4)/d(s30)
+    b(1) = -6.5d0*y(ihe4)*ratdum(iralam2)*ratdum(irdelta2)
+	dfdy(ihe4,is30) = b(1)
+
+!!! Hot CNO Carbon-12 elements
+	
+	! d(c12)/d(h1)    
+  	b(1) = -y(ic12)*ratdum(irc12pg)
+	b(2) = +y(in15)*ratdum(irn15pa)
+	dfdy(ic12,ih1) = sum(b(1:2))
+
+	! d(c12)/d(he4)
+    b(1) = -y(ic12)*ratdum(irc12ap)
+    b(2) = +0.5d0 * y(ihe4) * y(ihe4) * ratdum(ir3a)
+    b(3) = -y(ic12) * ratdum(ircag)
+	dfdy(ic12,ihe4) = esum3(b)
+
+	! d(c12)/d(c12)
+    b(1) = -y(ih1)*ratdum(irc12pg)
+    b(2) = -y(ihe4)*ratdum(irc12ap)
+    b(3) = -ratdum(irg3a)
+    b(4) = -y(ihe4) * ratdum(ircag)
+	dfdy(ic12,ic12) = esum4(b)
+    
+	! d(c12)/d(n13)
+  	b(1) = ratdum(irn13gp)
+	dfdy(ic12,in13) = b(1)
+
+	! d(c12)/d(n15)
+    b(1) = y(ih1)*ratdum(irn15pa)
+	dfdy(ic12,in15) =  b(1)
+
+	! d(c12)/d(o16)
+    b(1) = ratdum(iroga)
+	dfdy(ic12,io16) = b(1)
+
+!!! Hot CNO Carbon-13 elements
+	
+	! d(c13)/d(h1)
+    b(1) = -y(ic13)*ratdum(irc13pg)
+	dfdy(ic13,ih1) = b(1)
+
+	! d(c13)/d(c13)
+	b(1) = -y(ih1)*ratdum(irc13pg)
+	dfdy(ic13,ic13) = b(1)
+
+	! d(c13)/d(n13)
+    b(1) = ratdum(irn13enu)
+	dfdy(ic13,in13) = b(1)
+
+	! d(c13)/d(n14)
+	b(1) = ratdum(irn14gp)	    
+	dfdy(ic13,in14) = b(1)
+
+!!! Hot CNO Nitrogen-13
+	! d(n13)/d(h1)
+    b(1) = y(ic12)*ratdum(irc12pg)
+    b(2) = -y(in13)*ratdum(irn13pg)
+	dfdy(in13,ih1) = sum(b(1:2))
+
+	! d(n13)/d(c12)      
+	b(1) = y(ih1)*ratdum(irc12pg)
+	dfdy(in13,ic12) = b(1)
+
+	! d(n13)/d(n13)
+    b(1) = -ratdum(irn13gp)
+    b(2) = -ratdum(irn13enu)
+    b(3) = -y(ih1)*ratdum(irn13pg)
+	dfdy(in13,in13) = esum3(b)
+
+	! d(n13)/d(o14)
+    b(1) = ratdum(iro14gp)
+	dfdy(in13,io14) = b(1)
+
+! Hot CNO Nitrogen-14
+
+	! d(n14)/d(h1)
+    b(1) = y(ic13)*ratdum(irc13pg)
+    b(2) = -y(in14)*ratdum(irn14pg)
+    b(3) = +y(io17)*ratdum(iro17pa)
+	dfdy(in14,ih1) = esum3(b)
+
+	! d(n14)/d(he4)
+	b(1) = -y(in14)*ratdum(irn14ap)
+	dfdy(in14,ihe4) = b(1)
+
+	! d(n14)/d(c13)
+    b(1) = y(ih1)*ratdum(irc13pg)
+	dfdy(in14,ic13) = b(1)
+	
+	! d(n14)/d(n14)
+    b(1) = -ratdum(irn14gp)
+    b(2) = -y(ih1)*ratdum(irn14pg)
+    b(3) = -y(ihe4)*ratdum(irn14ap)
+	dfdy(in14,in14) = esum3(b)
+	
+	! d(n14)/d(o14)
+    b(1) = ratdum(iro14enu)
+	dfdy(in14,io14) = b(1)
+
+	! d(n14)/d(o15)
+    b(1) = ratdum(iro15gp)
+	dfdy(in14,io15) = b(1)
+
+	! d(n14)/d(o17)
+    b(1) = y(ih1)*ratdum(iro17pa)
+	dfdy(in14,io17) = b(1)
+
+!!! Hot CNO Nitrogen-15 elements
+
+	! d(n15)/d(h1)
+    b(1) = -y(in15)*ratdum(irn15pa)
+    b(2) = -y(in15)*ratdum(irn15pg)
+    b(3) = +y(io18)*ratdum(iro18pa)
+	dfdy(in15,ih1) = esum3(b)
+
+
+	! d(n15)/d(he4)
+    b(1) = y(ic12)*ratdum(irc12ap)
+    b(2) = -y(in15)*ratdum(irn15ap)
+	dfdy(in15,ihe4) = sum(b(1:2))
+
+	! d(n15)/d(c12)
+    b(1) = y(ihe4)*ratdum(irc12ap)
+	dfdy(in15,ic12) =  b(1)
+
+	! d(n15)/d(n15)
+    b(1) = -y(ih1)*ratdum(irn15pa)
+    b(2) = -y(ih1)*ratdum(irn15pg)
+    b(3) = -y(ihe4)*ratdum(irn15ap)
+  	dfdy(in15,in15) = esum3(b)
+ 
+	! d(n15)/d(o15)
+    b(1) = ratdum(iro15enu)
+	dfdy(in15,io15) = b(1)
+	
+	! d(n15)/d(o16)
+    b(1) = ratdum(iro16gp)
+	dfdy(in15,io16) = b(1)  
+	
+	! d(n15)/d(o18)
+	b(1) = y(ih1)*ratdum(iro18pa)
+	dfdy(in15,io18) = b(1)  
+
+!!! Hot CNO Oxygen-14 elements
+
+	! d(o14)/d(h1)
+    b(1) = y(in13)*ratdum(irn13pg)
+    b(2) = +y(if17) * ratdum(irf17pa)
+	dfdy(io14,ih1) = sum(b(1:2))
+
+	! d(o14)/d(he4)    
+	b(1) = -y(io14) * ratdum(iro14ap)
+	dfdy(io14,ihe4) = b(1)
+
+	! d(o14)/d(n13)    
+    b(1) = y(ih1)*ratdum(irn13pg)
+	dfdy(io14,in13) = b(1)
+	
+	! d(o14)/d(o14)
+	b(1) = -ratdum(iro14gp)
+    b(2) = -ratdum(iro14enu)
+    b(3) = -y(ihe4) * ratdum(iro14ap)
+	dfdy(io14,io14) = esum3(b)
+	
+	! d(o14)/d(f17)    
+    b(1) = y(ih1) * ratdum(irf17pa)
+	dfdy(io14,if17) = b(1) 
+
+!!! Hot CNO Oxygen-15 elements
+	
+	! d(o15)/d(h1)
+    b(1) = y(in14)*ratdum(irn14pg)
+    b(2) = +y(if18) * ratdum(irf18pa)
+	dfdy(io15,ih1) = sum(b(1:2))
+  
+	! d(o15)/d(he4)
+    b(1) = -y(io15) * ratdum(iro15ap)
+    b(2) = -y(io15) * ratdum(iro15ag)
+	dfdy(io15,ihe4) = sum(b(1:2))
+
+	! d(o15)/d(n14)
+    b(1) = y(ih1)*ratdum(irn14pg)
+	dfdy(io15,in14) = b(1)
+ 
+	! d(o15)/d(o15)
+    b(1) = -ratdum(iro15gp)
+    b(2) = -ratdum(iro15enu)
+    b(3) = -y(ihe4) * ratdum(iro15ap)
+    b(4) = -y(ihe4) * ratdum(iro15ag)
+	dfdy(io15,io15) = esum4(b)
+
+	! d(o15)/d(f18)	
+	b(1) = y(ih1) * ratdum(irf18pa)
+	dfdy(io15,if18) = b(1)  
+
+
+!!! Hot CNO Oxygen-16 elements
+	
+	! d(o16)/d(h1)
+    b(1) = y(in15)*ratdum(irn15pg)
+    b(2) = -y(io16)*ratdum(iro16pg)
+    b(3) = +y(if19)*ratdum(irf19pa)
+	dfdy(io16,ih1) = esum3(b)
+
+	! d(o16)/d(he4)
+    b(1) = -y(io16)*ratdum(iro16ap)
     b(2) = -y(io16) * ratdum(iroag)
+    b(3) = +y(ic12) * ratdum(ircag)	
+	dfdy(io16,ihe4) = esum3(b)
 
-    dfdy(io16,ihe4) = sum(b(1:2))
+	! d(o16)/d(c12)
+    b(1) = y(ihe4) * ratdum(ircag)
+	dfdy(io16,ic12) = b(1)  
 
-    ! d(o16)/d(c12)
-    b(1) =  y(ihe4) * ratdum(ircag)
-    b(2) = -y(io16) * ratdum(ir1216)
-
-    dfdy(io16,ic12) = sum(b(1:2))
-
-    ! d(o16)/d(o16)
-    b(1) = -ratdum(iroga)
-    b(2) = -y(ic12) * ratdum(ir1216)
-    b(3) = -2.0d0 * y(io16) * ratdum(ir1616)
+	! d(o16)/d(n15)
+    b(1) = y(ih1)*ratdum(irn15pg)
+  	dfdy(io16,in15) = b(1)
+  
+	! d(o16)/d(o16)
+    b(1) = -ratdum(iro16gp)
+    b(2) = -y(ih1)*ratdum(iro16pg)
+    b(3) = -y(ihe4)*ratdum(iro16ap)
     b(4) = -y(ihe4) * ratdum(iroag)
+    b(5) = -ratdum(iroga)
+	dfdy(io16,io16) = esum5(b)
 
-    dfdy(io16,io16) = esum4(b)
+	! d(o16)/d(h1)
+    b(1) = ratdum(irf17gp)
+	dfdy(io16,if17) = b(1)
 
-    ! d(o16)/d(ne20)
-    b(1) =  ratdum(irnega)
+	! d(o16)/d(h1)
+    b(1) = y(ih1)*ratdum(irf19pa)
+	dfdy(io16,if19) = b(1)
 
-    dfdy(io16,ine20) = b(1)
+!!! Hot CNO Oxygen-17 elements
 
+	! d(io17)/d(h1)      
+	b(1) = -y(io17)*ratdum(iro17pa)
+    b(2) = -y(io17)*ratdum(iro17pg)
+	dfdy(io17,ih1) = sum(b(1:2))
 
+	! d(io17)/d(he4)      
+    b(1) = y(in14)*ratdum(irn14ap)
+	dfdy(io17,ihe4) = b(1)
 
-    ! 20ne jacobian elements
-    ! d(ne20)/d(he4)
-    b(1) =  y(io16) * ratdum(iroag) - y(ine20) * ratdum(irneag)
+	! d(io17)/d(n14)      
+    b(1) = y(ihe4)*ratdum(irn14ap)
+	dfdy(io17,in14) = b(1)
 
-    dfdy(ine20,ihe4) = b(1)
+	! d(io17)/d(o17)      
+    b(1) = -y(ih1)*ratdum(iro17pa)
+	b(2) = -y(ih1)*ratdum(iro17pg)
+	dfdy(io17,io17) = sum(b(1:2))
 
-    ! d(ne20)/d(c12)
-    b(1) =  y(ic12) * ratdum(ir1212)
+	! d(io17)/d(f17)      
+    b(1) = ratdum(irf17enu)
+	dfdy(io17,if17) = b(1)
 
-    dfdy(ine20,ic12) = b(1)
+	! d(io17)/d(f18)      
+    b(1) = ratdum(irf18gp)
+	dfdy(io17,if18) = b(1)
 
-    ! d(ne20)/d(o16)
-    b(1) =  y(ihe4) * ratdum(iroag)
+!!! Hot CNO Oxygen-18 elements
 
-    dfdy(ine20,io16) = b(1)
+	! d(o18)/d(h1)      
+	b(1) = -y(io18)*ratdum(iro18pa)
+    b(2) = -y(io18)*ratdum(iro18pg)
+	dfdy(io18,ih1) = sum(b(1:2))
 
-    ! d(ne20)/d(ne20)
-    b(1) = -ratdum(irnega) - y(ihe4) * ratdum(irneag)
+	! d(o18)/d(he4)      
+	b(1) = y(in15)*ratdum(irn15ap)
+	dfdy(io18,ihe4) = b(1)
 
-    dfdy(ine20,ine20) = b(1)
+	! d(o18)/d(n15)      
+    b(1) = y(ihe4)*ratdum(irn15ap)
+	dfdy(io18,in15) = b(1)
 
-    ! d(ne20)/d(mg24)
-    b(1) =  ratdum(irmgga)
+	! d(o18)/d(o18)      
+    b(1) = -y(ih1)*ratdum(iro18pa)
+    b(2) = -y(ih1)*ratdum(iro18pg)
+	dfdy(io18,io18) = sum(b(1:2))
 
-    dfdy(ine20,img24) = b(1)
+	! d(o18)/d(f18)      
+    b(1) = ratdum(irf18enu)
+	dfdy(io18,if18) = b(1)
 
+	! d(o18)/d(f19)      
+    b(1) = ratdum(irf19gp)
+	dfdy(io18,if19) = b(1)
 
+!!! Hot CNO Fluorine-17 elements
 
-    ! 24mg jacobian elements
-    ! d(mg24)/d(he4)
-    b(1) =  y(ine20) * ratdum(irneag)
-    b(2) = -y(img24) * ratdum(irmgag)
+	! d(f17)/d(h1)
+    b(1) = y(io16) * ratdum(iro16pg)
+    b(2) = -y(if17) * ratdum(irf17pa)
+    b(3) = -y(if17) * ratdum(irf17pg)
+	dfdy(if17,ih1) = esum3(b)
 
-    dfdy(img24,ihe4) = sum(b(1:2))
+	! d(f17)/d(he4)
+    b(1) = y(io14) * ratdum(iro14ap)
+	dfdy(if17,ihe4) = b(1)
 
-    ! d(mg24)/d(c12)
-    b(1) =  0.5d0 * y(io16) * ratdum(ir1216)
+	! d(f17)/d(o14)
+    b(1) = y(ihe4) * ratdum(iro14ap)
+	dfdy(if17,io14) = b(1)
 
-    dfdy(img24,ic12) = b(1)
+	! d(f17)/d(o16)
+    b(1) = y(ih1)*ratdum(iro16pg)
+	dfdy(if17,io16) = b(1)
 
-    ! d(mg24)/d(o16)
-    b(1) =  0.5d0 * y(ic12) * ratdum(ir1216)
+	! d(f17)/d(f17)
+    b(1) = -ratdum(irf17gp)
+    b(2) = -ratdum(irf17enu)
+    b(3) = -y(ih1) * ratdum(irf17pa)
+    b(4) = -y(ih1) * ratdum(irf17pg)
+	dfdy(if17,if17) = esum4(b)
 
-    dfdy(img24,io16) = b(1)
+	! d(f17)/d(ne18)
+    b(1) = ratdum(irne18gp)
+	dfdy(if17,ine18) = b(1)
 
-    ! d(mg24)/d(ne20)
-    b(1) =  y(ihe4) * ratdum(irneag)
+!!! Hot CNO Fluorine-18 elements
 
-    dfdy(img24,ine20) = b(1)
+	! d(f18)/d(h1)    
+	b(1) = y(io17)*ratdum(iro17pg)
+    b(2) = -y(if18) * ratdum(irf18pa)
+	dfdy(if18,ih1) = sum(b(1:2))
 
-    ! d(mg24)/d(mg24)
-    b(1) = -ratdum(irmgga)
-    b(2) = -y(ihe4) * ratdum(irmgag)
+	! d(f18)/d(he4)    
+    b(1) = y(io15) * ratdum(iro15ap)
+	dfdy(if18,ihe4) = b(1)
 
-    dfdy(img24,img24) = sum(b(1:2))
+	! d(f18)/d(o15)    
+    b(1) = y(ihe4) * ratdum(iro15ap)
+	dfdy(if18,io15) = b(1)
 
-    ! d(mg24)/d(si28)
-    b(1) =  ratdum(irsiga)
+	! d(f18)/d(o17)    
+    b(1) = y(ih1)*ratdum(iro17pg)
+	dfdy(if18,io17) = b(1)
 
-    dfdy(img24,isi28) = b(1)
+	! d(f18)/d(f18)    
+    b(1) = -ratdum(irf18gp)
+    b(2) = -ratdum(irf18enu)
+    b(3) = -y(ih1) * ratdum(irf18pa)
+	dfdy(if18,if18) = esum3(b)
 
-    ! 28si jacobian elements
-    ! d(si28)/d(he4)
-    b(1) =  y(img24) * ratdum(irmgag)
-    b(2) = -ratdum(irsi2ni)
-    b(3) = -dratdumdy1(irsi2ni) * y(ihe4)
-    b(4) =  dratdumdy1(irni2si) * y(ini56)
+	! d(f18)/d(ne18)    
+    b(1) = ratdum(irne18enu)
+	dfdy(if18,ine18) = b(1)
 
-    dfdy(isi28,ihe4) = esum4(b)
+!!! Hot CNO Fluorine-19 elements
 
-    ! d(si28)/d(c12)
-    b(1) =  0.5d0 * y(io16) * ratdum(ir1216)
+	! d(f19)/d(h1)      
+	b(1) = y(io18)*ratdum(iro18pg)
+    b(2) = -y(if19)*ratdum(irf19pa)
+	dfdy(if19,ih1) = sum(b(1:2))
 
-    dfdy(isi28,ic12) = b(1)
+	! d(f19)/d(he4)      
+    b(1) = y(io16)*ratdum(iro16ap)
+	dfdy(if19,ihe4) = b(1)
 
-    ! d(si28)/d(o16)
-    b(1) =  y(io16) * ratdum(ir1616)
-    b(2) =  0.5d0 * y(ic12) * ratdum(ir1216)
+	! d(f19)/d(o16)      
+    b(1) = y(ihe4)*ratdum(iro16ap)
+	dfdy(if19,io16) = b(1)
 
-    dfdy(isi28,io16) = sum(b(1:2))
+	! d(f19)/d(o18)      
+    b(1) = y(ih1)*ratdum(iro18pg)
+	dfdy(if19,io18) = b(1)
 
-    ! d(si28)/d(mg24)
-    b(1) =  y(ihe4) * ratdum(irmgag)
+	! d(f19)/d(f19)      
+    b(1) = -ratdum(irf19gp)
+    b(2) = -y(ih1)*ratdum(irf19pa)
+	dfdy(if19,if19) = sum(b(1:2))
 
-    dfdy(isi28,img24) = b(1)
+	! d(f19)/d(ne19)      
+    b(1) = ratdum(irne19enu)
+	dfdy(if19,ine19) = b(1)
 
-    ! d(si28)/d(si28)
-    b(1) = -ratdum(irsiga)
-    b(2) = -dratdumdy2(irsi2ni) * y(ihe4)
+!!! Hot CNO Neon-18 elements
 
-    dfdy(isi28,isi28) = sum(b(1:2))
+	! d(ne18)/d(h1)
+    b(1) = y(if17) * ratdum(irf17pg)
+	dfdy(ine18,ih1) = b(1)
 
-    ! d(si28)/d(ni56)
-    b(1) =  ratdum(irni2si)
+	! d(ne18)/d(he4)
+    b(1) = -y(ine18) * ratdum(irne18ap)
+	dfdy(ine18,ihe4) = b(1)
 
-    dfdy(isi28,ini56) = b(1)
+	! d(ne18)/d(f17)
+    b(1) = y(ih1) * ratdum(irf17pg)
+	dfdy(ine18,if17) = b(1)
 
-    ! ni56 jacobian elements
-    ! d(ni56)/d(he4)
-    b(1) =  ratdum(irsi2ni)
-    b(2) =  dratdumdy1(irsi2ni) * y(ihe4)
-    b(3) = -dratdumdy1(irni2si) * y(ini56)
+	! d(ne18)/d(ne18)
+    b(1) = -ratdum(irne18gp)
+    b(2) = -ratdum(irne18enu)
+    b(3) = -y(ihe4) * ratdum(irne18ap)
+	dfdy(ine18,ine18) = esum3(b)
 
-    dfdy(ini56,ihe4) = esum3(b)
+!!! Hot CNO Neon-19 elements
 
-    ! d(ni56)/d(si28)
-    b(1) = dratdumdy2(irsi2ni) * y(ihe4)
+	! d(ne19)/d(h1)	
+	b(1) = -y(ine19)*ratdum(irne19pg)
+	dfdy(ine19,ih1) = b(1)
 
-    dfdy(ini56,isi28) = b(1)
+	! d(ne19)/d(he4)	
+    b(1) = y(io15) * ratdum(iro15ag)
+	dfdy(ine19,ihe4) = b(1)
 
-    ! d(ni56)/d(ni56)
-    b(1) = -ratdum(irni2si)
+	! d(ne19)/d(o15)	
+    b(1) = y(ihe4) * ratdum(iro15ag)
+	dfdy(ine19,io15) = b(1)
 
-    dfdy(ini56,ini56) = b(1)
+	! d(ne19)/d(ne19)	
+    b(1) = -ratdum(irne19enu)
+    b(2) = -y(ih1)*ratdum(irne19pg)
+	dfdy(ine19,ine19) = sum(b(1:2))
 
-  end subroutine dfdy_isotopes_iso7
+!!! Hot CNO Neon-20 elements
+
+	! d(ne20)/d(h1)	
+	b(1) = -y(ine20)*ratdum(irne20pg)
+	dfdy(ine20,ih1) = b(1)
+
+	! d(ne20)/d(he4)	
+    b(1) = y(io16) * ratdum(iroag)
+	dfdy(ine20,ihe4) = b(1)
+	
+	! d(ne20)/d(o16)	
+	b(1) = y(ihe4) * ratdum(iroag)
+	dfdy(ine20,io16) = b(1)
+
+	! d(ne20)/d(ne20)	
+    b(1) = -y(ih1) * ratdum(irne20pg)
+	dfdy(ine20,ine20) = b(1)
+
+!!! Hot CNO Magnesium-22 elements
+
+	! d(mg22)/d(h1)      
+	b(1) = y(ine19) * ratdum(irne19pg)
+    b(2) = +y(ine20) * ratdum(irne20pg)
+    b(3) = -y(img22) * ratdum(iralam1) * (1.0d0 - ratdum(irdelta1))
+	dfdy(img22,ih1) = esum3(b)
+
+	! d(mg22)/d(he4)      
+    b(1) = -y(img22)*ratdum(iralam1)*ratdum(irdelta1)
+    b(2) = +y(ine18) * ratdum(irne18ap)
+	dfdy(img22,ihe4) = sum(b(1:2))
+
+	! d(mg22)/d(ne18)      
+    b(1) = y(ihe4) * ratdum(irne18ap)
+	dfdy(img22,ine18) = b(1)
+
+	! d(mg22)/d(ne19)      
+    b(1) = y(ih1)*ratdum(irne19pg)
+	dfdy(img22,ine19) = b(1)
+
+	! d(mg22)/d(ne20)      
+    b(1) = y(ih1)*ratdum(irne20pg)
+	dfdy(img22,ine20) = b(1)
+
+	! d(mg22)/d(mg22)      
+    b(1) = -y(ih1) * ratdum(iralam1) * (1.0d0 - ratdum(irdelta1))
+    b(2) = -y(ihe4) * ratdum(iralam1) * ratdum(irdelta1)
+	dfdy(img22,img22) = sum(b(1:2))
+
+!!! Hot CNO Sulfur-30 elements
+
+	! d(s30)/d(h1)
+    b(1) = y(img22) * ratdum(iralam1) * (1.0d0 - ratdum(irdelta1))
+    b(2) = -y(is30)*ratdum(iralam2) * (1.0d0 - ratdum(irdelta2))
+	dfdy(is30,ih1) = sum(b(1:2))
+
+	! d(s30)/d(he4)
+    b(1) = y(img22) * ratdum(iralam1) * ratdum(irdelta1)
+    b(2) = -y(is30) * ratdum(iralam2) * ratdum(irdelta2)
+	dfdy(is30,ihe4) = sum(b(1:2))
+ 
+	! d(s30)/d(mg22)
+    b(1) = y(ih1)*ratdum(iralam1) * (1.0d0 - ratdum(irdelta1))
+    b(2) = + y(ihe4)*ratdum(iralam1)*ratdum(irdelta1)
+	dfdy(is30,img22) = sum(b(1:2))
+	
+	! d(s30)/d(s30)
+    b(1) = -y(ih1) * ratdum(iralam2) * (1.0d0 - ratdum(irdelta2))
+    b(2) = -y(ihe4) * ratdum(iralam2) * ratdum(irdelta2)
+	dfdy(is30,is30) = sum(b(1:2))
+
+!!! Hot CNO Nickel-56 elements
+
+	! d(ni56)/d(h1)     
+	b(1) = y(is30)*ratdum(iralam2) * (1.0d0 - ratdum(irdelta2))
+	dfdy(ini56,ih1) = b(1)
+
+	! d(ni56)/d(he4)     
+    b(1) = y(is30)*ratdum(iralam2)*ratdum(irdelta2)
+	dfdy(ini56,ihe4) = b(1)
+
+	! d(ni56)/d(s30)     
+    b(1) = y(ih1) * ratdum(iralam2) * (1.0d0 - ratdum(irdelta2))
+    b(2) = +y(ihe4) * ratdum(iralam2) * ratdum(irdelta2)
+	dfdy(ini56,is30) = sum(b(1:2))
+
+  end subroutine dfdy_isotopes_pphotcno
 
 
 
@@ -1051,16 +1693,18 @@ contains
 
     ! note: we need to set these up in the same order that we evaluate the
     ! rates in actual_rhs.f90 (yes, it's ugly)
-    call add_screening_factor(zion(ihe4),aion(ihe4),zion(ihe4),aion(ihe4))
-    call add_screening_factor(zion(ihe4),aion(ihe4),4.0d0,8.0d0)
-    call add_screening_factor(zion(ic12),aion(ic12),zion(ihe4),aion(ihe4))
-    call add_screening_factor(zion(ic12),aion(ic12),zion(ic12),aion(ic12))
-    call add_screening_factor(zion(ic12),aion(ic12),zion(io16),aion(io16))
-    call add_screening_factor(zion(ic12),aion(ic12),zion(io16),aion(io16))
-    call add_screening_factor(zion(io16),aion(io16),zion(ihe4),aion(ihe4))
-    call add_screening_factor(zion(ine20),aion(ine20),zion(ihe4),aion(ihe4))
-    call add_screening_factor(zion(img24),aion(img24),zion(ihe4),aion(ihe4))
-    call add_screening_factor(20.0d0,40.0d0,zion(ihe4),aion(ihe4))
+    
+	!TODO: Need to add the correct screening factors here
+	!call add_screening_factor(zion(ihe4),aion(ihe4),zion(ihe4),aion(ihe4))
+    !call add_screening_factor(zion(ihe4),aion(ihe4),4.0d0,8.0d0)
+    !call add_screening_factor(zion(ic12),aion(ic12),zion(ihe4),aion(ihe4))
+    !call add_screening_factor(zion(ic12),aion(ic12),zion(ic12),aion(ic12))
+    !call add_screening_factor(zion(ic12),aion(ic12),zion(io16),aion(io16))
+    !call add_screening_factor(zion(ic12),aion(ic12),zion(io16),aion(io16))
+    !call add_screening_factor(zion(io16),aion(io16),zion(ihe4),aion(ihe4))
+    !call add_screening_factor(zion(ine20),aion(ine20),zion(ihe4),aion(ihe4))
+    !call add_screening_factor(zion(img24),aion(img24),zion(ihe4),aion(ihe4))
+    !call add_screening_factor(20.0d0,40.0d0,zion(ihe4),aion(ihe4))
 
   end subroutine set_up_screening_factors
 
