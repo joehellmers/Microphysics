@@ -45,13 +45,13 @@ module tfactors_module
      double precision :: t923
      double precision :: t943
      double precision :: t953
-     !double precision :: t973
-     !double precision :: t9113
-     !double precision :: t914
+     double precision :: t973
+     double precision :: t9113
+     double precision :: t914
      !double precision :: t934
      !double precision :: t954
      !double precision :: t974
-     !double precision :: t915
+     double precision :: t915
      !double precision :: t935
      !double precision :: t945
      !double precision :: t965
@@ -72,22 +72,22 @@ module tfactors_module
      double precision :: t9i23
      double precision :: t9i43
      double precision :: t9i53
-     !double precision :: t9i14
+     double precision :: t9i14
      !double precision :: t9i34
-     !double precision :: t9i54
-     !double precision :: t9i15
+     double precision :: t9i54
+     double precision :: t9i15
      !double precision :: t9i35 
      !double precision :: t9i45
-     !double precision :: t9i65
+     double precision :: t9i65
      double precision :: t9i17
      double precision :: t9i27
      !double precision :: t9i47
      !double precision :: t9i18
      !double precision :: t9i38
      !double precision :: t9i58 
-     !double precision :: t916
-     !double precision :: t976
-     !double precision :: t9i76
+     double precision :: t916
+     double precision :: t976
+     double precision :: t9i76
 
   end type tf_t
 
@@ -127,22 +127,22 @@ contains
     tf%t923  = tf%t913*tf%t913
     tf%t943  = tf%t9*tf%t913
     tf%t953  = tf%t9*tf%t923
-    !tf%t973  = tf%t953*tf%t923
-    !tf%t9113 = tf%t973*tf%t943
+    tf%t973  = tf%t953*tf%t923
+    tf%t9113 = tf%t973*tf%t943
 
-    !tf%t914  = tf%t9**(0.25d0)
+    tf%t914  = tf%t9**(0.25d0)
     !tf%t934  = tf%t914*tf%t914*tf%t914
     !tf%t954  = tf%t9*tf%t914
     !tf%t974  = tf%t9*tf%t934
     
-    !tf%t915  = tf%t9**onefif
+    tf%t915  = tf%t9**onefif
     !tf%t935  = tf%t915*tf%t915*tf%t915
     !tf%t945  = tf%t915 * tf%t935
     !tf%t965  = tf%t9 * tf%t915
     
-    !tf%t916  = tf%t9**onesix
-    !tf%t976  = tf%t9 * tf%t916
-    !tf%t9i76 = 1.0d0/tf%t976
+    tf%t916  = tf%t9**onesix
+    tf%t976  = tf%t9 * tf%t916
+    tf%t9i76 = 1.0d0/tf%t976
     
     tf%t917  = tf%t9**onesev
     !tf%t927  = tf%t917*tf%t917
@@ -166,14 +166,14 @@ contains
     tf%t9i43 = tf%t9i*tf%t9i13
     tf%t9i53 = tf%t9i*tf%t9i23
     
-    !tf%t9i14 = 1.0d0/tf%t914
+    tf%t9i14 = 1.0d0/tf%t914
     !tf%t9i34 = tf%t9i14*tf%t9i14*tf%t9i14
-    !tf%t9i54 = tf%t9i*tf%t9i14
+    tf%t9i54 = tf%t9i*tf%t9i14
     
-    !tf%t9i15 = 1.0d0/tf%t915
+    tf%t9i15 = 1.0d0/tf%t915
     !tf%t9i35 = tf%t9i15*tf%t9i15*tf%t9i15
     !tf%t9i45 = tf%t9i15 * tf%t9i35
-    !tf%t9i65 = tf%t9i*tf%t9i15
+    tf%t9i65 = tf%t9i*tf%t9i15
     
     tf%t9i17 = 1.0d0/tf%t917
     tf%t9i27 = tf%t9i17*tf%t9i17

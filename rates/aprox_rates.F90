@@ -2642,7 +2642,1281 @@ contains
 
   end subroutine rate_fe56pg
 
+  ! The following rates were added for Hot CNO rates (pphotcno)
 
+  subroutine rate_f17em(tf,den,fr,dfrdt,dfrdd,rr,drrdt,drrdd)
+
+    implicit none
+
+    double precision :: den,fr,dfrdt,dfrdd,rr,drrdt,drrdd
+    type (tf_t)      :: tf
+
+	double precision lntwo,halflife,con
+      parameter        (lntwo    = 0.6931471805599453d0, &
+                        halflife = 64.49d0, &
+                        con      = lntwo/halflife)
+
+	! f17(e-nu)o17
+	fr    = con
+	dfrdt = 0.0d0
+	!dfrdd = 0.0d0
+
+	rr    = 0.0d0
+	drrdt = 0.0d0
+	!drrdd = 0.0d0
+
+  end subroutine rate_f17em
+
+  subroutine rate_o17pa(tf,den,fr,dfrdt,dfrdd,rr,drrdt,drrdd)
+
+    implicit none
+
+    double precision :: den,fr,dfrdt,dfrdd,rr,drrdt,drrdd
+    type (tf_t)      :: tf
+
+	double precision term,dtermdt,rev,drevdt,aa,daa,bb,dbb, &
+		           cc,dcc,res1,dres1,res2,dres2,res3,dres3, &
+		           res4,dres4,res5,dres5,res6,dres6,zz, &
+		           theta,q1,q2
+	parameter        (theta = 0.1d0, &
+		            q1    = 1.0d0/0.319225d0, &
+		            q2    = 1.0d0/0.0016d0)
+
+! o17(p,a)n14
+! rate from jeff blackmons thesis, includes terms from fowler 75,
+! landre 1990 (a&a 240, 85), and new results
+! use rev factor from cf88 rate
+
+      aa  = 1.53d+07 * tf%t9i23 * exp(-16.712*tf%t9i13 - tf%t92*q1)
+      daa = aa*(-twoth*tf%t9i + oneth*16.712*tf%t9i43 - 2.0d0*tf%t9*q1)
+
+      bb   = 1.0d0 + 0.025*tf%t913 + 5.39*tf%t923 + 0.940*tf%t9 &
+             + 13.5*tf%t943 + 5.98*tf%t953
+      dbb  = oneth*0.025*tf%t9i23 + twoth*5.39*tf%t9i13 + 0.940 &
+             + fourth*13.5*tf%t913 + fiveth*5.98*tf%t923
+
+      res1  = aa * bb
+      dres1 = daa*bb + aa*dbb
+
+      res2  = 2.92d+06 * tf%t9 * exp(-4.247*tf%t9i)
+      dres2 = res2*(tf%t9i + 4.247*tf%t9i2)
+
+
+      aa    = 0.479 * tf%t923 + 0.00312
+      daa   = twoth*0.479*tf%t9i13
+
+      bb    = aa*aa
+      dbb   = 2.0d0 * aa * daa
+
+      cc    =  1.78d+05 * tf%t9i23 * exp(-16.669*tf%t9i13)
+      dcc   = cc*(-twoth*tf%t9i + oneth*16.669*tf%t9i43)
+
+      zz    = 1.0d0/bb
+      res3  = cc*zz
+      dres3 = (dcc - res3*dbb)*zz
+
+      res4  = 8.68d+10 * tf%t9 * exp(-16.667*tf%t9i13 - tf%t92*q2)
+      dres4 = res4*(tf%t9i + oneth*16.667*tf%t9i43 - 2.0d0*tf%t9*q2)
+
+      res5  = 9.22d-04 * tf%t9i32 * exp(-0.767*tf%t9i)
+      dres5 = res5*(-1.5d0*tf%t9i + 0.767*tf%t9i2)
+
+      res6  = theta * 98.0 * tf%t9i32 * exp(-2.077*tf%t9i)
+      dres6 = res6*(-1.5d0*tf%t9i + 2.077*tf%t9i2)
+
+      term    = res1 + res2 + res3 + res4 + res5 + res6
+      dtermdt = dres1 + dres2 + dres3 + dres4 + dres5 + dres6
+
+! rates
+      fr    = den * term
+      dfrdt = den * dtermdt * 1.0d-9
+      !dfrdd = term
+
+      rev      = 0.676 * exp(-13.825*tf%t9i)
+      drevdt   = rev*13.825*tf%t9i2
+
+      rr    = den * rev * term
+      drrdt = den * (drevdt*term + rev*dtermdt) * 1.0d-9
+      !drrdd = rev * term
+
+  end subroutine rate_o17pa
+
+  subroutine rate_o17pg(tf,den,fr,dfrdt,dfrdd,rr,drrdt,drrdd)
+
+    implicit none
+
+    double precision :: den,fr,dfrdt,dfrdd,rr,drrdt,drrdd
+    type (tf_t)      :: tf
+
+	double precision term,dtermdt,rev,drevdt,aa,daa,bb,dbb, &
+		           cc,dcc,dd,ddd,ee,dee,ff,dff,gg,dgg, &
+		           t9a,dt9a,t9a13,dt9a13,t9a56,dt9a56, &
+		           zz,theta
+	parameter        (theta = 0.1d0)
+
+
+! o17(p,g)18f
+! from landre et al 1990 a&a 240, 85
+	aa     = 1.0d0 + 2.69*tf%t9
+	zz     = 1.0d0/aa
+
+	t9a    = tf%t9*zz
+	dt9a   = (1.0d0 - t9a*2.69)*zz
+
+	zz     = dt9a/t9a
+	t9a13  = t9a**oneth
+	dt9a13 = oneth*t9a13*zz
+
+	t9a56  = t9a**fivsix
+	dt9a56 = fivsix*t9a56*zz
+
+	aa  = 7.97d+07 * t9a56 * tf%t9i32 * exp(-16.712/t9a13)
+	daa = aa*(dt9a56/t9a56 - 1.5d0*tf%t9i + 16.712/t9a13**2*dt9a13)
+
+	bb  = 1.0d0  + 0.025*tf%t913 - 0.051*tf%t923 - 8.82d-3*tf%t9
+	dbb = oneth*0.025*tf%t9i23 - twoth*0.051*tf%t9i13 - 8.82d-3
+	if (bb .le. 0.0) then
+		bb  = 0.0d0
+		dbb = 0.0d0
+	end if
+
+	cc  = 1.51d+08 * tf%t9i23 * exp(-16.712*tf%t9i13)
+	dcc = cc*(-twoth*tf%t9i + oneth*16.712*tf%t9i43)
+
+	dd  = bb*cc
+	ddd = dbb*cc + bb*dcc
+
+	ee  = 1.56d+5 * tf%t9i * exp(-6.272*tf%t9i)
+	dee = ee*(-tf%t9i + 6.272*tf%t9i2)
+
+	ff  = 2.0d0 * theta * 3.16d-05 * tf%t9i32 * exp(-0.767*tf%t9i)
+	dff = ff*(-1.5d0*tf%t9i + 0.767*tf%t9i2)
+
+	gg  = theta * 98.0 * tf%t9i32 * exp(-2.077*tf%t9i)
+	dgg = gg*(-1.5d0*tf%t9i + 2.077*tf%t9i2)
+
+	term    = aa + dd + ee + ff + gg
+	dtermdt = daa + ddd + dee + dff + dgg
+
+! rates
+	fr    = den * term
+	dfrdt = den * dtermdt * 1.0d-9
+	!dfrdd = term
+
+	rev      = 3.66d+10 * tf%t932 * exp(-65.061*tf%t9i)
+	drevdt   = rev*(1.5d0*tf%t9i + 65.061*tf%t9i2)
+
+	rr    = rev * term
+	drrdt = (drevdt*term + rev*dtermdt) * 1.0d-9
+	!drrdd = 0.0d0
+
+  end subroutine rate_o17pg
+
+  subroutine rate_f18em(tf,den,fr,dfrdt,dfrdd,rr,drrdt,drrdd)
+
+    implicit none
+
+    double precision :: den,fr,dfrdt,dfrdd,rr,drrdt,drrdd
+    type (tf_t)      :: tf
+
+	double precision lntwo,halflife,con
+	parameter        (lntwo    = 0.6931471805599453d0, &
+		            halflife = 6586.2d0, &
+		            con      = lntwo/halflife)
+
+! f18(e-nu)o18
+	fr    = con
+	dfrdt = 0.0d0
+	dfrdd = 0.0d0
+
+	rr    = 0.0d0
+	drrdt = 0.0d0
+	drrdd = 0.0d0
+
+  end subroutine rate_f18em
+
+  subroutine rate_o18pa(tf,den,fr,dfrdt,dfrdd,rr,drrdt,drrdd)
+
+    implicit none
+
+    double precision :: den,fr,dfrdt,dfrdd,rr,drrdt,drrdd
+    type (tf_t)      :: tf
+
+	double precision term,dtermdt,rev,drevdt,aa,daa,bb,dbb, &
+		           cc,dcc,dd,ddd,ee,dee,ff,dff,gg,dgg,q1
+	parameter        (q1 = 1.0d0/1.852321d0)
+
+
+! o18(p,a)n15
+	aa  = 3.63e+11 * tf%t9i23 * exp(-16.729*tf%t9i13 - tf%t92*q1)
+	daa = -twoth*aa*tf%t9i + aa*(oneth*16.729*tf%t9i43 - 2.0d0*tf%t9*q1)
+
+	bb  = 1.0d0 + 0.025*tf%t913 + 1.88*tf%t923 + 0.327*tf%t9 &
+		+ 4.66*tf%t943 + 2.06*tf%t953
+	dbb = oneth*0.025*tf%t9i23 + twoth*1.88*tf%t9i13 + 0.327 &
+		+ fourth*4.66*tf%t913 + fiveth*2.06*tf%t923
+
+	cc  = aa * bb
+	dcc = daa*bb + aa*dbb
+
+	dd  = 9.90e-14 * tf%t9i32 * exp(-0.231*tf%t9i)
+	ddd = -1.5d0*dd*tf%t9i + dd*0.231*tf%t9i2
+
+	ee  = 2.66e+04 * tf%t9i32 * exp(-1.670*tf%t9i)
+	dee = -1.5d0*ee*tf%t9i + ee*1.670*tf%t9i2
+
+	ff  = 2.41e+09 * tf%t9i32 * exp(-7.638*tf%t9i)
+	dff = -1.5d0*ff*tf%t9i + ff*7.638*tf%t9i2
+
+	gg  = 1.46e+09 * tf%t9i * exp(-8.310*tf%t9i)
+	dgg = -gg*tf%t9i + gg*8.310*tf%t9i2
+
+	term    = cc + dd + ee + ff + gg
+	dtermdt = dcc + ddd + dee + dff + dgg
+
+! rates
+	fr    = den * term
+	dfrdt = den * dtermdt * 1.0d-9
+	!dfrdd = term
+
+	rev      = 1.66e-01 * exp(-46.191*tf%t9i)
+	drevdt   = rev*46.191*tf%t9i2
+
+	rr    = den * rev * term
+	drrdt = den * (drevdt*term + rev*dtermdt) * 1.0d-9
+	!drrdd = rev * term
+
+  end subroutine rate_o18pa
+
+  subroutine rate_o18pg(tf,den,fr,dfrdt,dfrdd,rr,drrdt,drrdd)
+
+    implicit none
+
+    double precision :: den,fr,dfrdt,dfrdd,rr,drrdt,drrdd
+    type (tf_t)      :: tf
+
+	double precision term,dtermdt,rev,drevdt,aa,daa,bb,dbb, &
+		           cc,dcc,dd,ddd,ee,dee,ff,dff,q1
+	parameter        (q1 = 1.0d0/0.019321d0)
+
+! o18(p,g)19f
+	aa  = 3.45e+08 * tf%t9i23 * exp(-16.729*tf%t9i13 - tf%t92*q1)
+	daa = aa*(-twoth*tf%t9i + oneth*16.729*tf%t9i43 - 2.0d0*tf%t9*q1)
+
+	bb  = 1.0d0 + 0.025*tf%t913 + 2.26*tf%t923 + 0.394*tf%t9 &
+		+ 30.56*tf%t943 + 13.55*tf%t953
+	dbb = oneth*0.025*tf%t9i23 + twoth*2.26*tf%t9i13 + 0.394 &
+		+ fourth*30.56*tf%t913 + fiveth*13.55*tf%t923
+
+	cc  = aa*bb
+	dcc = daa*bb + aa*dbb
+
+	dd  = 1.25e-15 * tf%t9i32 * exp(-0.231*tf%t9i)
+	ddd = dd*(-1.5d0*tf%t9i + 0.231*tf%t9i2)
+
+	ee  = 1.64e+02 * tf%t9i32 * exp(-1.670*tf%t9i)
+	dee = ee*(-1.5d0*tf%t9i + 1.670*tf%t9i2)
+
+	ff  = 1.28e+04 * tf%t912 * exp(-5.098*tf%t9i)
+	dff = ff*(0.5d0*tf%t9i + 5.098*tf%t9i2)
+
+	term    = cc + dd + ee + ff
+	dtermdt = dcc + ddd + dee + dff
+
+! rates
+	fr    = den * term
+	dfrdt = den * dtermdt * 1.0d-9
+	!dfrdd = term
+
+	rev      = 9.20e+09 * tf%t932 * exp(-92.769*tf%t9i)
+	drevdt   = rev*(1.5d0*tf%t9i + 92.769*tf%t9i2)
+
+	rr    = rev * term
+	drrdt = (drevdt*term + rev*dtermdt) * 1.0d-9
+	!drrdd = 0.0d0
+
+  end subroutine rate_o18pg
+
+  subroutine rate_f19pa(tf,den,fr,dfrdt,dfrdd,rr,drrdt,drrdd)
+
+    implicit none
+
+    double precision :: den,fr,dfrdt,dfrdd,rr,drrdt,drrdd
+    type (tf_t)      :: tf
+
+	double precision term,dtermdt,rev,drevdt,aa,daa,bb,dbb, &
+		           cc,dcc,dd,ddd,ee,dee,ff,dff,gg,dgg,hh,dhh,q1
+	parameter        (q1 = 1.0d0/0.714025d0)
+
+
+! f19(p,a)o16
+	aa  = 3.55d+11 * tf%t9i23 * exp(-18.113*tf%t9i13 - tf%t92*q1)
+	daa = -twoth*aa*tf%t9i + aa*(oneth*18.113*tf%t9i43 - 2.0d0*tf%t9*q1)
+
+	bb  = 1.0d0 + 0.023*tf%t913 + 1.96*tf%t923 + 0.316*tf%t9 &
+		+ 2.86*tf%t943 + 1.17*tf%t953
+	dbb = oneth*0.023*tf%t9i23 + twoth*1.96*tf%t9i13 + 0.316 &
+		+ fourth*2.86*tf%t913 + fiveth*1.17*tf%t923
+
+	cc  = aa * bb
+	dcc = daa*bb + aa*dbb
+
+	dd  = 3.67d+06 * tf%t9i32 * exp(-3.752*tf%t9i)
+	ddd = -1.5d0*dd*tf%t9i + dd*3.752*tf%t9i2
+
+	ee  = 3.07d+08 * exp(-6.019*tf%t9i)
+	dee = ee*6.019*tf%t9i2
+
+	ff  = 4.0*exp(-2.090*tf%t9i)
+	dff = ff*2.090*tf%t9i2
+
+	gg  = 7.0*exp(-16.440*tf%t9i)
+	dgg = gg*16.440*tf%t9i2
+
+	hh  = 1.0d0 + ff + gg
+	dhh = dff + dgg
+
+	term    = (cc + dd + ee)/hh
+	dtermdt = ((dcc + ddd + dee) - term*dhh)/hh
+
+! rates
+	fr    = den * term
+	dfrdt = den * dtermdt * 1.0d-9
+	!dfrdd = term
+
+	rev      = 6.54e-01 * exp(-94.159*tf%t9i)
+	drevdt   = rev*94.159*tf%t9i2
+
+	rr    = den * rev * term
+	drrdt = den * (drevdt*term + rev*dtermdt) * 1.0d-9
+	!drrdd = rev * term
+
+  end
+
+  subroutine rate_pep(tf,den,ye,fr,dfrdt,dfrdd,rr,drrdt,drrdd)
+
+    implicit none
+
+    double precision :: den,ye,fr,dfrdt,dfrdd,rr,drrdt,drrdd
+    type (tf_t)      :: tf
+
+	double precision term,dtermdt,aa,daa,bb,dbb
+
+! p(e-p,nu)d
+	if (tf%t9 .le. 3.0) then
+
+		aa   = 1.36e-20 * tf%t9i76 * exp(-3.380*tf%t9i13)
+		daa  = aa*(-sevsix*tf%t9i + oneth*3.380d0*tf%t9i43)
+
+		bb   = (1.0d0 - 0.729d0*tf%t913 + 9.82d0*tf%t923)
+		dbb  = -oneth*0.729d0*tf%t9i23 + twoth*9.82d0*tf%t9i13
+
+		term    = aa * bb
+		dtermdt = daa * bb + aa * dbb
+
+	else
+		term    = 7.3824387e-21
+		dtermdt = 0.0d0
+	end if
+
+! rate
+	fr    = ye * den * den * term
+	dfrdt = ye * den * den * dtermdt * 1.0d-9
+	!dfrdd = ye * 2.0d0 * den * term
+
+	rr    = 0.0d0
+	drrdt = 0.0d0
+	!drrdd = 0.0d0
+
+  end subroutine rate_pep
+
+  subroutine rate_hep(tf,den,fr,dfrdt,dfrdd,rr,drrdt,drrdd)
+
+    implicit none
+
+    double precision :: den,fr,dfrdt,dfrdd,rr,drrdt,drrdd
+    type (tf_t)      :: tf
+
+	double precision term,dtermdt,aa,daa,bb,dbb
+
+
+! he3(p,e+nu)he4
+	if (tf%t9 .le. 3.0) then
+
+		aa   = 8.78e-13 * tf%t9i23 * exp(-6.141d0*tf%t9i13)
+		daa  = aa*(-twoth*tf%t9i + oneth*6.141d0*tf%t9i43)
+
+		term    = aa
+		dtermdt = daa
+
+	else
+		term    = 5.9733434e-15
+		dtermdt = 0.0d0
+	end if
+
+! rate
+	fr    = den * term
+	dfrdt = den * dtermdt * 1.0d-9
+	!dfrdd = term
+
+	rr    = 0.0d0
+	drrdt = 0.0d0
+	!drrdd = 0.0d0
+
+  end subroutine rate_hep
+
+  subroutine rate_be7em(tf,den,ye,fr,dfrdt,dfrdd,rr,drrdt,drrdd)
+
+    implicit none
+
+    double precision :: den,ye,fr,dfrdt,dfrdd,rr,drrdt,drrdd
+    type (tf_t)      :: tf
+
+	double precision term,dtermdt,aa,daa,bb,dbb
+
+! be7(e-,nu+g)li7
+	if (tf%t9 .le. 3.0) then
+		aa  = 0.0027 * tf%t9i * exp(2.515e-3*tf%t9i)
+		daa = -aa*tf%t9i - aa*2.515e-3*tf%t9i2
+
+		bb  = 1.0d0 - 0.537*tf%t913 + 3.86*tf%t923 + aa
+		dbb = -oneth*0.537*tf%t9i23 + twoth*3.86*tf%t9i13 + daa
+
+		term    = 1.34e-10 * tf%t9i12 * bb
+		dtermdt = -0.5d0*term*tf%t9i + 1.34e-10*tf%t9i12*dbb
+
+	else
+		term    = 0.0d0
+		dtermdt = 0.0d0
+	endif
+
+! rates
+	fr    = ye * den * term
+	dfrdt = ye * den * dtermdt * 1.0d-9
+	!dfrdd = ye * term
+
+	rr    = 0.0d0
+	drrdt = 0.0d0
+	!drrdd = 0.0d0
+
+  end subroutine rate_be7em
+
+  subroutine rate_be7pg(tf,den,fr,dfrdt,dfrdd,rr,drrdt,drrdd)
+
+    implicit none
+
+    double precision :: den,fr,dfrdt,dfrdd,rr,drrdt,drrdd
+    type (tf_t)      :: tf
+
+! locals
+	double precision term,dtermdt,rev,drevdt,aa,daa,bb,dbb
+
+! be7(p,g)b8
+	aa      = 3.11e+05 * tf%t9i23 * exp(-10.262*tf%t9i13)
+	daa     = aa*(-twoth*tf%t9i + oneth*10.262*tf%t9i43)
+
+	bb      = 2.53e+03 * tf%t9i32 * exp(-7.306*tf%t9i)
+	dbb     = bb*(-1.5d0*tf%t9i + 7.306*tf%t9i2)
+
+	term    = aa + bb
+	dtermdt = daa + dbb
+
+! rates
+	fr    = den * term
+	dfrdt = den * dtermdt * 1.0d-9
+	!dfrdd = term
+
+	rev      = 1.30e+10 * tf%t932 * exp(-1.595*tf%t9i)
+	drevdt   = rev*(1.5d0*tf%t9i + 1.595*tf%t9i2)
+
+	rr    = rev * term
+	drrdt = (drevdt * term + rev * dtermdt) * 1.0d-9
+	!drrdd = 0.0d0
+
+  end subroutine rate_be7pg
+
+  subroutine rate_b8ep(tf,den,fr,dfrdt,dfrdd,rr,drrdt,drrdd)
+
+    implicit none
+
+    double precision :: den,fr,dfrdt,dfrdd,rr,drrdt,drrdd
+    type (tf_t)      :: tf
+
+	double precision lntwo,halflife,con
+	parameter        (lntwo    = 0.6931471805599453d0, &
+		            halflife = 0.77d0, &
+		            con      = lntwo/halflife)
+
+! b8(e+,nu)be8 => 2a
+
+	fr    = con
+	dfrdt = 0.0d0
+	!dfrdd = 0.0d0
+
+	rr    = 0.0d0
+	drrdt = 0.0d0
+	!drrdd = 0.0d0
+
+  end subroutine rate_b8ep
+
+  subroutine rate_li7pag(tf,den,fr,dfrdt,dfrdd,rr,drrdt,drrdd)
+
+    implicit none
+
+    double precision :: den,fr,dfrdt,dfrdd,rr,drrdt,drrdd
+    type (tf_t)      :: tf
+
+      double precision term,dtermdt,rev,drevdt,aa,daa,bb,dbb,cc,dcc,dd,ddd, &
+                       t9a,dt9a,t9a13,dt9a13,t9a56,dt9a56,zz, &
+                       term1,dterm1,term2,dterm2,rev1,drev1dt,rev2,drev2dt,q1
+      parameter        (q1 = 1.0d0/2.876416d0)
+
+! 7li(p,g)8be=>2a
+      aa   = 1.56d5 * tf%t9i23 * exp(-8.472d0 * tf%t9i13 - tf%t92*q1)
+      daa  = aa*(-twoth*tf%t9i + oneth*8.472*tf%t9i43 - 2.0d0*tf%t9*q1)
+
+      bb   = 1.0d0 + 0.049d0*tf%t913 + 2.498d0*tf%t923 + 0.86d0*tf%t9 &
+             + 3.518d0*tf%t943 + 3.08*tf%t953
+      dbb  = oneth*0.049*tf%t9i23 + twoth*2.498*tf%t9i13 + 0.86 &
+             + fourth*3.518*tf%t913 + fiveth*3.08*tf%t923
+
+      cc   = aa*bb
+      dcc  = daa*bb + aa*dbb
+
+      dd   =  1.55d6 * tf%t9i32 * exp(-4.478d0 * tf%t9i)
+      ddd  = dd*(-1.5d0*tf%t9i + 4.478*tf%t9i2)
+
+      term1  = cc + dd
+      dterm1 = dcc + ddd
+
+      rev1    = 6.55e+10 * tf%t932 * exp(-200.225*tf%t9i)
+      drev1dt = rev1*(1.5d0*tf%t9i + 200.225*tf%t9i2)
+
+
+! 7li(p,a)a
+      aa     = 1.0d0 + 0.759*tf%t9
+
+      zz     = 1.0d0/aa
+      t9a    = tf%t9*zz
+      dt9a   = (1.0d0 - t9a*0.759)*zz
+
+      zz     = dt9a/t9a
+      t9a13  = t9a**oneth
+      dt9a13 = oneth*t9a13*zz
+
+      t9a56  = t9a**fivsix
+      dt9a56 = fivsix*t9a56*zz
+
+      aa     = 1.096e+09 * tf%t9i23 * exp(-8.472*tf%t9i13)
+      daa    = aa*(-twoth*tf%t9i + oneth*8.472*tf%t9i43)
+
+      bb     = -4.830e+08 * t9a56 * tf%t9i32 * exp(-8.472/t9a13)
+      dbb    = bb*(dt9a56/t9a56 - 1.5d0*tf%t9i + 8.472/t9a13**2*dt9a13)
+
+      cc     = 1.06e+10 * tf%t9i32 * exp(-30.442*tf%t9i)
+      dcc    = cc*(-1.5d0*tf%t9i + 30.442*tf%t9i2)
+
+      term2   = aa + bb + cc
+      dterm2  = daa + dbb + dcc
+
+      rev2    = 4.69 * exp(-201.291*tf%t9i)
+      drev2dt = rev2*201.291*tf%t9i2
+
+! sum the two forward rates (per f35 cf88)
+
+      term    = term1 + term2
+      dtermdt = dterm1 + dterm2
+
+! per cf88 the reverse rate just the second one
+      rev     = rev2
+      drevdt  = drev2dt
+
+! rates
+      fr    = den * term
+      dfrdt = den * dtermdt * 1.0d-9
+      !dfrdd = term
+
+      rr    = den * rev * term
+      drrdt = den * (drevdt*term + rev*dtermdt) * 1.0d-9
+      !drrdd = rev * term
+
+  end
+
+  subroutine rate_n13em(tf,den,fr,dfrdt,dfrdd,rr,drrdt,drrdd)
+
+    implicit none
+
+    double precision :: den,fr,dfrdt,dfrdd,rr,drrdt,drrdd
+    type (tf_t)      :: tf
+
+	double precision lntwo,halflife,con
+	parameter        (lntwo    = 0.6931471805599453d0, &
+		            halflife = 597.9d0, &
+		            con      = lntwo/halflife)
+
+! n13(e-nu)c13
+	fr    = con
+	dfrdt = 0.0d0
+	!dfrdd = 0.0d0
+
+	rr    = 0.0d0
+	drrdt = 0.0d0
+	!drrdd = 0.0d0
+
+  end subroutine rate_n13em
+
+  subroutine rate_c13pg(tf,den,fr,dfrdt,dfrdd,rr,drrdt,drrdd)
+
+    implicit none
+
+    double precision :: den,fr,dfrdt,dfrdd,rr,drrdt,drrdd
+    type (tf_t)      :: tf
+
+	double precision term,dtermdt,rev,drevdt,aa,daa,bb,dbb, &
+		           cc,dcc,dd,ddd,q1
+	parameter        (q1 = 1.0d0/4.0d0)
+
+
+! c13(p,g)13n
+	aa   = 8.01e+07 * tf%t9i23 * exp(-13.717*tf%t9i13 - tf%t92*q1)
+	daa  = aa*(-twoth*tf%t9i + oneth*13.717*tf%t9i43 - 2.0d0*tf%t9*q1)
+
+	bb   = 1.0d0 + 0.030*tf%t913 + 0.958*tf%t923 + 0.204*tf%t9 &
+		 + 1.39*tf%t943 + 0.753*tf%t953
+	dbb  = oneth*0.030*tf%t9i23 + twoth*0.958*tf%t9i13 + 0.204 &
+		 + fourth*1.39*tf%t913 + fiveth*0.753*tf%t923
+
+	cc   = aa * bb
+	dcc  = daa*bb + aa*dbb
+
+	dd   = 1.21e+06 * tf%t9i65 * exp(-5.701*tf%t9i)
+	ddd  = dd*(-sixfif*tf%t9i + 5.701*tf%t9i2)
+
+	term    = cc + dd
+	dtermdt = dcc + ddd
+
+
+! rates
+	fr    = den * term
+	dfrdt = den * dtermdt * 1.0d-9
+	!dfrdd = term
+
+	rev      = 1.19e+10 * tf%t932 * exp(-87.621*tf%t9i)
+	drevdt   = rev*(1.5d0*tf%t9i + 87.621*tf%t9i2)
+
+	rr    = rev * term
+	drrdt = (drevdt*term + rev*dtermdt) * 1.0d-9
+	!drrdd = 0.0d0
+
+  end subroutine rate_c13pg
+
+  subroutine rate_o15em(tf,den,fr,dfrdt,dfrdd,rr,drrdt,drrdd)
+
+    implicit none
+
+    double precision :: den,fr,dfrdt,dfrdd,rr,drrdt,drrdd
+    type (tf_t)      :: tf
+
+	double precision lntwo,halflife,con
+	parameter        (lntwo    = 0.6931471805599453d0, &
+		            halflife = 122.24d0, &
+		            con      = lntwo/halflife)
+
+! o15(e-nu)n15
+	fr    = con
+	dfrdt = 0.0d0
+	!dfrdd = 0.0d0
+
+	rr    = 0.0d0
+	drrdt = 0.0d0
+	!drrdd = 0.0d0
+
+  end subroutine rate_o15em
+
+  subroutine rate_n13pg(tf,den,fr,dfrdt,dfrdd,rr,drrdt,drrdd)
+
+    implicit none
+
+    double precision :: den,fr,dfrdt,dfrdd,rr,drrdt,drrdd
+    type (tf_t)      :: tf
+
+	double precision term,dtermdt,rev,drevdt,aa,daa,bb,dbb, &
+		           cc,dcc,dd,ddd,q1
+	parameter        (q1 = 1.0d0/0.69288976d0)
+
+! n13(p,g)o14
+! Keiner et al 1993 Nucl Phys A552, 66
+	aa  = -1.727d+7 * tf%t9i23 * exp(-15.168*tf%t9i13 - tf%t92*q1)
+	daa = aa*(-twoth*tf%t9i + oneth*15.168*tf%t9i43 -2.0d0*tf%t9*q1)
+
+	bb  = 1.0d0 + 0.027*tf%t913 - 17.54*tf%t923 - 3.373*tf%t9 &
+		+ 0.0176*tf%t943 + 0.766d-2*tf%t953
+	dbb = oneth*0.027*tf%t9i23 - twoth*17.54*tf%t9i13 - 3.373 &
+		+ fourth*0.0176*tf%t913 + fiveth*0.766d-2*tf%t923
+
+	cc  = aa*bb
+	dcc = daa*bb + aa*dbb
+
+	dd  = 3.1d+05 * tf%t9i32 * exp(-6.348*tf%t9i)
+	ddd = dd*(-1.5d0*tf%t9i + 6.348*tf%t9i2)
+
+	term    = cc + dd
+	dtermdt = dcc + ddd
+
+! goes negative below about t7=1.5
+! note cf88 rate stays positive
+	if (term .lt. 0.0) then
+		term    = 0.0d0
+		dtermdt = 0.0d0
+	end if
+
+! rates
+	fr    = den * term
+	dfrdt = den * dtermdt * 1.0d-9
+	!dfrdd = term
+
+	rev      = 3.57d+10*tf%t932*exp(-53.706*tf%t9i)
+	drevdt   = rev*(1.5d0*tf%t9i + 53.706*tf%t9i2)
+
+	rr    = rev * term
+	drrdt = (drevdt*term + rev*dtermdt) * 1.0d-9
+	!drrdd = 0.0d0
+
+  end subroutine rate_n13pg
+
+  subroutine rate_o14em(tf,den,fr,dfrdt,dfrdd,rr,drrdt,drrdd)
+
+    implicit none
+
+    double precision :: den,fr,dfrdt,dfrdd,rr,drrdt,drrdd
+    type (tf_t)      :: tf
+
+	double precision lntwo,halflife,con
+	parameter        (lntwo    = 0.6931471805599453d0, &
+		            halflife = 70.606d0, &
+		            con      = lntwo/halflife)
+
+! o14(e-nu)n14
+	fr    = con
+	dfrdt = 0.0d0
+	!dfrdd = 0.0d0
+
+	rr    = 0.0d0
+	drrdt = 0.0d0
+	!drrdd = 0.0d0
+
+  end subroutine rate_o14em
+
+  subroutine rate_o14ap(tf,den,fr,dfrdt,dfrdd,rr,drrdt,drrdd)
+
+    implicit none
+
+    double precision :: den,fr,dfrdt,dfrdd,rr,drrdt,drrdd
+    type (tf_t)      :: tf
+
+	double precision term,dtermdt,rev,drevdt,aa,daa,bb,dbb, &
+		           cc,dcc,dd,ddd,ee,dee,ff,dff,q1
+	parameter        (q1 = 1.0d0/0.514089d0)
+
+
+! o14(a,p)f17
+	aa  = 1.68e+13 * tf%t9i23 * exp(-39.388*tf%t9i13- tf%t92*q1)
+	daa = -twoth*aa*tf%t9i + aa*(oneth*39.388*tf%t9i43 - 2.0d0*tf%t9*q1)
+
+	bb  = 1.0d0 + 0.011*tf%t913 + 13.117*tf%t923 + 0.971*tf%t9 &
+		+ 85.295*tf%t943 + 16.061*tf%t953
+	dbb = oneth*0.011*tf%t9i23 + twoth*13.117*tf%t9i13 + 0.971 &
+		+ fourth*85.295*tf%t913 + fiveth*16.061*tf%t923
+
+	cc  = aa * bb
+	dcc = daa*bb + aa*dbb
+
+	dd  = 3.31e+04 * tf%t9i32 * exp(-11.733*tf%t9i)
+	ddd = -1.5d0*dd*tf%t9i + dd*11.733*tf%t9i2
+
+	ee  = 1.79e+07 * tf%t9i32 * exp(-22.609*tf%t9i)
+	dee = -1.5d0*ee*tf%t9i + ee*22.609*tf%t9i2
+
+	ff  = 9.00e+03 * tf%t9113 * exp(-12.517*tf%t9i)
+	dff = elvnth*ff*tf%t9i + ff*12.517*tf%t9i2
+
+	term    = cc + dd + ee + ff
+	dtermdt = dcc + ddd + dee + dff
+
+
+! rates
+	fr    = den * term
+	dfrdt = den * dtermdt * 1.0d-9
+	!dfrdd = term
+
+	rev      = 4.93e-01*exp(-13.820*tf%t9i)
+	drevdt   = rev*13.820*tf%t9i2
+
+	rr    = den * rev * term
+	drrdt = den * (drevdt*term + rev*dtermdt) * 1.0d-9
+	!drrdd = rev * term
+
+  end subroutine rate_o14ap
+
+
+  subroutine rate_f17pg(tf,den,fr,dfrdt,dfrdd,rr,drrdt,drrdd)
+
+    implicit none
+
+    double precision :: den,fr,dfrdt,dfrdd,rr,drrdt,drrdd
+    type (tf_t)      :: tf
+
+	double precision term,dtermdt,rev,drevdt,aa,daa,bb,dbb, &
+		           cc,dcc,dd,ddd,ee,dee
+
+
+! f17(p,g)ne18
+! wiescher and kettner, ap. j., 263, 891 (1982)
+
+	aa  = 1.66e+07 * tf%t9i23 * exp(-18.03*tf%t9i13)
+	daa = aa*(-twoth*tf%t9i + oneth*18.03*tf%t9i43)
+
+	bb  = 2.194 + 0.050*tf%t913 - 0.376*tf%t923 - 0.061*tf%t9 &
+		+ 0.026*tf%t943 + 0.011*tf%t953
+	dbb = oneth*0.050*tf%t9i23 - twoth*0.376*tf%t9i13 - 0.061 &
+		+ fourth*0.026*tf%t913 + fiveth*0.011*tf%t923
+
+	cc  = aa*bb
+	dcc = daa*bb + aa*dbb
+
+	dd  = 839.0 * tf%t9i32 * exp(-6.93*tf%t9i)
+	ddd = dd*(-1.5d0*tf%t9i + 6.93*tf%t9i2)
+
+	ee  = 33.56 * tf%t9i32 * exp(-7.75*tf%t9i)
+	dee = ee*(-1.5d0*tf%t9i + 7.75*tf%t9i2)
+
+	term    = cc + dd + ee
+	dtermdt = dcc + ddd + dee
+
+! rates
+	fr    = den * term
+	dfrdt = den * dtermdt * 1.0d-9
+	!dfrdd = term
+
+	rev      = 1.087e+11 * tf%t932 * exp(-45.501*tf%t9i)
+	drevdt   = rev*(1.5d0*tf%t9i + 45.501*tf%t9i2)
+
+	rr    = rev * term
+	drrdt = (drevdt*term + rev*dtermdt) * 1.0d-9
+	!drrdd = 0.0d0
+
+  end subroutine rate_f17pg
+
+	subroutine rate_ne18em(tf,den,fr,dfrdt,dfrdd,rr,drrdt,drrdd)
+
+    implicit none
+
+    double precision :: den,fr,dfrdt,dfrdd,rr,drrdt,drrdd
+    type (tf_t)      :: tf
+
+	double precision lntwo,halflife,con
+	parameter        (lntwo    = 0.6931471805599453d0, &
+		            halflife = 1.672d0, &
+		            con      = lntwo/halflife)
+
+! ne18(e-nu)f18
+	fr    = con
+	dfrdt = 0.0d0
+	!dfrdd = 0.0d0
+
+	rr    = 0.0d0
+	drrdt = 0.0d0
+	!drrdd = 0.0d0
+
+  end
+
+  subroutine rate_f18pa(tf,den,fr,dfrdt,dfrdd,rr,drrdt,drrdd)
+
+    implicit none
+
+    double precision :: den,fr,dfrdt,dfrdd,rr,drrdt,drrdd
+    type (tf_t)      :: tf
+
+	double precision term,dtermdt,rev,drevdt,aa,daa,bb,dbb, &
+					   cc,dcc,dd,ddd,ee,dee,ff,dff
+
+
+! f18(p,a)o15
+! wiescher and kettner, ap. j., 263, 891 (1982)
+
+	aa  = 1.66e-10 * tf%t9i32 * exp(-0.302*tf%t9i)
+	daa = aa*(-1.5d0*tf%t9i + 0.302*tf%t9i2)
+
+	bb  = 1.56e+05 * tf%t9i32 * exp(-3.84*tf%t9i)
+	dbb = bb*(-1.5d0*tf%t9i + 3.84*tf%t9i2)
+
+	cc  = 1.36e+06 * tf%t9i32 * exp(-5.22*tf%t9i)
+	dcc = cc*(-1.5d0*tf%t9i + 5.22*tf%t9i2)
+
+	dd  = 8.1e-05 * tf%t9i32 * exp(-1.05*tf%t9i)
+	ddd = dd*(-1.5d0*tf%t9i + 1.05*tf%t9i2)
+
+	ee  = 8.9e-04 * tf%t9i32 * exp(-1.51*tf%t9i)
+	dee = ee*(-1.5d0*tf%t9i + 1.51*tf%t9i2)
+
+	ff  = 3.0e+05 * tf%t9i32 * exp(-4.29*tf%t9i)
+	dff = ff*(-1.5d0*tf%t9i + 4.29*tf%t9i2)
+
+	term    = aa + bb + cc + dd + ee + ff
+	dtermdt = daa + dbb + dcc + ddd + dee + dff
+
+! rates
+	fr    = den * term
+	dfrdt = den * dtermdt * 1.0d-9
+	!dfrdd = term
+
+	rev      = 4.93e-01 * exp(-33.433*tf%t9i)
+	drevdt   = rev*33.433*tf%t9i2
+
+	rr    = den * rev * term
+	drrdt = den * (drevdt*term + rev*dtermdt) * 1.0d-9
+	!drrdd = rev * term
+
+  end subroutine rate_f18pa
+
+  subroutine rate_ne18ap(tf,den,fr,dfrdt,dfrdd,rr,drrdt,drrdd)
+
+    implicit none
+
+    double precision :: den,fr,dfrdt,dfrdd,rr,drrdt,drrdd
+    type (tf_t)      :: tf
+
+	double precision term,dtermdt,rev,drevdt,aa,bb,dbb, &
+		           cc,dcc,dd,ddd,ee,dee,zz
+
+	double precision z1,a1,ztot,ared,r,c1,c2,c3,c4
+	parameter        (z1   = 10.0d0, &
+		            a1   = 18.0d0, &
+		            ztot = 2.0d0 * z1, &
+		            ared = 4.0d0*a1/(4.0d0 + a1), &
+		            r    = 5.1566081196876965d0, &
+		            c1   = 4.9080044545315392d10, &
+		            c2   = 4.9592784569936502d-2, &
+		            c3   = 1.9288564401521285d1, &
+		            c4   = 4.6477847042196437d1)
+
+! note:
+!      r    = 1.09 * a1**oneth + 2.3
+!      c1   = 7.833e9 * 0.31 * ztot**fourth/(ared**fivsix)
+!      c2   = 0.08617 * 0.1215 * sqrt(ared*r**3/ztot)
+!      c3   = 2.0d0 * 0.52495 * sqrt(ared*r*ztot)
+!      c4   = 4.2487 * (ztot**2*ared)**oneth
+
+
+! ne18ap(a,p)na21
+! was a call to aprate
+
+      aa  = 1.0d0 + c2*tf%t9
+      zz  = c2/aa
+
+      bb  = aa**fivsix
+      dbb = fivsix*bb*zz
+
+      cc  = tf%t923 * bb
+      dcc = twoth*cc*tf%t9i + tf%t923 * dbb
+
+      dd = aa**oneth
+      ddd = oneth*dd*zz
+
+      ee  = tf%t9i13 * dd
+      dee = -oneth*ee*tf%t9i + tf%t9i13 * ddd
+
+      zz      = 1.0d0/cc
+      term    = c1*zz * exp(c3 - c4*ee)
+      dtermdt = -term*(zz*dcc + c4*dee)
+
+! rates
+      fr    = den * term
+      dfrdt = den * dtermdt * 1.0d-9
+      !dfrdd = term
+
+      rev    = 0.0d0
+      drevdt = 0.0d0
+
+      rr    = 0.0d0
+      drrdt = 0.0d0
+      !drrdd = 0.0d0
+
+  end subroutine rate_ne18ap
+
+  subroutine rate_ne19pg(tf,den,fr,dfrdt,dfrdd,rr,drrdt,drrdd)
+
+    implicit none
+
+    double precision :: den,fr,dfrdt,dfrdd,rr,drrdt,drrdd
+    type (tf_t)      :: tf
+
+	double precision term,dtermdt,rev,drevdt,aa,daa,bb,dbb, &
+		           cc,dcc,dd,ddd,ee,dee,ff,dff,gg,dgg,q1
+	parameter        (q1 = 1.0d0/1.304164d0)
+
+
+! ne19(p,g)na20
+
+	aa  = 1.71d+6 * tf%t9i23 * exp(-19.431d0*tf%t9i13)
+	daa = aa*(-twoth*tf%t9i + oneth*19.431*tf%t9i43)
+
+	bb  = 1.0d0 + 0.021*tf%t913 + 0.130*tf%t923 + 1.95d-2*tf%t9 &
+		+ 3.86d-2*tf%t943 + 1.47d-02*tf%t953
+	dbb = oneth*0.021*tf%t9i23 + twoth*0.130*tf%t9i13 + 1.95d-2 &
+		+ fourth*3.86d-2*tf%t913 + fiveth*1.47d-2*tf%t923
+
+	cc  = aa*bb
+	dcc = daa*bb + aa*dbb
+
+
+	dd  = 1.89d+5 * tf%t9i23 * exp(-19.431d0*tf%t9i13 - tf%t92*q1)
+	ddd = dd*(-twoth*tf%t9i + oneth*19.431*tf%t9i43 - 2.0d0*tf%t9*q1)
+
+	ee  = 1.0d0 + 0.021*tf%t913 + 2.13*tf%t923 + 0.320*tf%t9 &
+		+ 2.80*tf%t943 + 1.07*tf%t953
+	dee = oneth*0.021*tf%t9i23 + twoth*2.13*tf%t9i13 + 0.320 &
+		+ fourth*2.80*tf%t913 + fiveth*1.07*tf%t923
+
+	ff  = dd*ee
+	dff = ddd*ee + dd*dee
+
+	gg  = 8.45d+3 * tf%t9i54 * exp(-7.64d0*tf%t9i)
+	dgg = gg*(-fivfour*tf%t9i + 7.64d0*tf%t9i2)
+
+
+	term    = cc + ff + gg
+	dtermdt = dcc + dff + dgg
+
+! rates
+	fr    = den * term
+	dfrdt = den * dtermdt * 1.0d-9
+	!dfrdd = term
+
+	rev      = 7.39e+09 * tf%t932 * exp(-25.519*tf%t9i)
+	drevdt   = rev*(1.5d0*tf%t9i + 25.519*tf%t9i2)
+
+	rr    = rev * term
+	drrdt = (drevdt*term + rev*dtermdt) * 1.0d-9
+	!drrdd = 0.0d0
+
+  end subroutine rate_ne19pg
+
+  subroutine rate_o15ag(tf,den,fr,dfrdt,dfrdd,rr,drrdt,drrdd)
+
+    implicit none
+
+    double precision :: den,fr,dfrdt,dfrdd,rr,drrdt,drrdd
+    type (tf_t)      :: tf
+
+	double precision term,dtermdt,rev,drevdt,aa,daa,bb,dbb, &
+		           cc,dcc,dd,ddd,ee,dee,ff,dff,gg,dgg,hh,dhh, &
+		           q1,q2,q3
+	parameter        (q1 = 1.0d0/9.0d0, &
+		            q2 = 1.0d0/3.751969d0, &
+		            q3 = 1.0d0/64.0d0)
+
+
+! o15(a,g)ne19
+
+      aa  = 3.57d+11 * tf%t9i23 * exp(-39.584d+0*tf%t9i13 - tf%t92*q1)
+      daa = aa*(-twoth*tf%t9i + oneth*39.584d0*tf%t9i43 - 2.0d0*tf%t9*q1)
+
+      bb  = 1.0d0 + 0.011*tf%t913 - 0.273*tf%t923 - 0.020*tf%t9
+      dbb = oneth*0.011*tf%t9i23 - twoth*0.273*tf%t9i13 - 0.020
+
+      cc  = aa*bb
+      dcc = daa*bb + aa*dbb
+
+      dd  = 5.10d+10 * tf%t9i23 * exp(-39.584d+0*tf%t9i13 - tf%t92*q2)
+      ddd = dd*(-twoth*tf%t9i + oneth*39.584*tf%t9i43 - 2.0d0*tf%t9*q2)
+
+      ee  = 1.0d0 + 0.011*tf%t913 + 1.59*tf%t923 + 0.117*tf%t9 &
+            + 1.81*tf%t943 + 0.338*tf%t953
+      dee = oneth*0.011*tf%t9i23 + twoth*1.59*tf%t9i13 + 0.117 &
+            + fourth*1.81*tf%t913 + fiveth*0.338*tf%t923
+
+      ff  = dd*ee
+      dff = ddd*ee + dd*dee
+
+      gg  = 3.95d-1 * tf%t9i32 * exp(-5.849*tf%t9i)
+      dgg = gg*(-1.5d0*tf%t9i + 5.849*tf%t9i2)
+
+      hh  = 1.90d+1 * tf%t9**2.85 * exp(-7.356*tf%t9i - tf%t92*q3)
+      dhh = hh*(2.85*tf%t9i + 7.356*tf%t9i2 - 2.0d0*tf%t9*q3)
+
+
+      term    = cc + ff + gg + hh
+      dtermdt = dcc + dff + dgg + dhh
+
+! the rates
+      fr    = den * term
+      dfrdt = den * dtermdt * 1.0d-9
+      !dfrdd = term
+
+      rev      = 5.54e+10 * tf%t932 * exp(-40.957*tf%t9i)
+      drevdt   = rev*(1.5d0*tf%t9i + 40.957*tf%t9i2)
+
+      rr    = rev * term
+      drrdt = (drevdt * term + rev * dtermdt) * 1.0d-9
+      !drrdd = 0.0d0
+
+  end subroutine rate_o15ag
+
+  subroutine rate_si26ap(tf,den,fr,dfrdt,dfrdd,rr,drrdt,drrdd)
+
+    implicit none
+
+    double precision :: den,fr,dfrdt,dfrdd,rr,drrdt,drrdd
+    type (tf_t)      :: tf
+
+	double precision term,dtermdt,rev,drevdt,aa,bb,dbb, &
+		           cc,dcc,dd,ddd,ee,dee,zz
+
+	double precision z1,a1,ztot,ared,r,c1,c2,c3,c4
+	parameter        (z1   = 14.0d0, &
+		            a1   = 26.0d0, &
+		            ztot = 2.0d0 * z1, &
+		            ared = 4.0d0*a1/(4.0d0 + a1), &
+		            r    = 5.5291207145640335d0, &
+		            c1   = 7.3266779970543091d10, &
+		            c2   = 4.7895369289991982d-02, &
+		            c3   = 2.4322657793918662d1, &
+		            c4   = 5.9292366232997814d1)
+
+! note:
+!      r    = 1.09 * a1**oneth + 2.3
+!      c1   = 7.833e9 * 0.31 * ztot**fourth/(ared**fivsix)
+!      c2   = 0.08617 * 0.1215 * sqrt(ared*r**3/ztot)
+!      c3   = 2.0d0 * 0.52495 * sqrt(ared*r*ztot)
+!      c4   = 4.2487 * (ztot**2*ared)**oneth
+
+
+
+! si26ap(a,p)p29
+! was a call to aprate
+
+	aa  = 1.0d0 + c2*tf%t9
+	zz  = c2/aa
+
+	bb  = aa**fivsix
+	dbb = fivsix*bb*zz
+
+	cc  = tf%t923 * bb
+	dcc = twoth*cc*tf%t9i + tf%t923 * dbb
+
+	dd = aa**oneth
+	ddd = oneth*dd*zz
+
+	ee  = tf%t9i13 * dd
+	dee = -oneth*ee*tf%t9i + tf%t9i13 * ddd
+
+	zz      = 1.0d0/cc
+	term    = c1*zz * exp(c3 - c4*ee)
+	dtermdt = -term*(zz*dcc + c4*dee)
+
+! rates
+	fr    = den * term
+	dfrdt = den * dtermdt * 1.0d-9
+	!dfrdd = term
+
+	rev      = 0.0d0
+	drevdt   = 0.0d0
+
+	rr    = 0.0d0
+	drrdt = 0.0d0
+	!drrdd = 0.0d0
+
+  end subroutine rate_si26ap
+
+  subroutine rate_ne19em(tf,den,fr,dfrdt,dfrdd,rr,drrdt,drrdd)
+
+    implicit none
+
+    double precision :: den,fr,dfrdt,dfrdd,rr,drrdt,drrdd
+    type (tf_t)      :: tf
+
+	double precision lntwo,halflife,con
+	parameter        (lntwo    = 0.6931471805599453d0, &
+		            halflife = 17.3982d0, &
+		            con      = lntwo/halflife)
+
+! ne18(e-nu)f18
+      fr    = con
+      dfrdt = 0.0d0
+      !dfrdd = 0.0d0
+
+      rr    = 0.0d0
+      drrdt = 0.0d0
+      !drrdd = 0.0d0
+
+  end subroutine rate_ne19em
+
+  subroutine rate_ne20pg(tf,den,fr,dfrdt,dfrdd,rr,drrdt,drrdd)
+
+    implicit none
+
+    double precision :: den,fr,dfrdt,dfrdd,rr,drrdt,drrdd
+    type (tf_t)      :: tf
+
+      double precision term,dtermdt,rev,drevdt,aa,daa,bb,dbb,cc,dcc, &
+                       dd,ddd,ff,gg,dgg,zz
+
+
+! ne20(p,g)na21
+      aa  = 9.55e+06 * exp(-19.447*tf%t9i13)
+      daa = aa*oneth*19.447*tf%t9i43
+
+      bb  = 1.0d0 + 0.0127*tf%t9i23
+      dbb = -twoth*0.0127*tf%t9i53
+
+      cc  = tf%t92 * bb * bb
+      dcc = 2.0d0*cc*tf%t9i + 2.0d0*tf%t92*bb*dbb
+
+      zz  = 1.0d0/cc
+      dd  = aa*zz
+      ddd = (daa - dd*dcc)*zz
+
+      aa  = 2.05e+08 * tf%t9i23 * exp(-19.447*tf%t9i13)
+      daa = aa*(-twoth*tf%t9i + oneth*19.447*tf%t9i43)
+
+      bb  = sqrt (tf%t9/0.21)
+      dbb = 0.5d0/(bb * 0.21)
+
+      cc  = 2.67 * exp(-bb)
+      dcc = -cc*dbb
+
+      ff  = 1.0d0 + cc
+
+      gg  = aa*ff
+      dgg = daa*ff + aa*dcc
+
+
+      aa  = 18.0 * tf%t9i32 * exp(-4.242*tf%t9i)
+      daa = aa*(-1.5d0*tf%t9i + 4.242*tf%t9i2)
+
+      bb  = 10.2 * tf%t9i32 * exp(-4.607*tf%t9i)
+      dbb = bb*(-1.5d0*tf%t9i + 4.607*tf%t9i2)
+
+      cc  = 3.6e+04 * tf%t9i14 * exp(-11.249*tf%t9i)
+      dcc = cc*(-0.25d0*tf%t9i + 11.249*tf%t9i2)
+
+      term    = dd + gg + aa + bb + cc
+      dtermdt = ddd + dgg + daa + dbb + dcc
+
+! rates
+      fr    = den * term
+      dfrdt = den * dtermdt * 1.0d-9
+      !dfrdd = term
+
+      rev      = 4.63e+09 * tf%t932 * exp(-28.216*tf%t9i)
+      drevdt   = rev*(1.5d0*tf%t9i + 28.216*tf%t9i2)
+
+      rr    = rev * term
+      drrdt = (drevdt*term + rev*dtermdt) * 1.0d-9
+      !drrdd = 0.0d0
+
+  end subroutine rate_ne20pg
 
   ! this routine evaluates Langanke et al. 2000 fits for the ni56 electron
   ! capture rate rn56ec and neutrino loss rate sn56ec
