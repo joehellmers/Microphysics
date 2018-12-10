@@ -16,7 +16,8 @@ EOS_DIR := helmholtz
 #NETWORK_DIR := triple_alpha_plus_cago
 #NETWORK_DIR := ignition_chamulak
 #NETWORK_DIR := subch
-NETWORK_DIR := ignition_reaclib/URCA-simple
+#NETWORK_DIR := ignition_reaclib/URCA-simple
+NETWORK_DIR := pphotcno
 
 INTEGRATOR_DIR := VODE
 

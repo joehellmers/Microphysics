@@ -387,7 +387,7 @@ contains
     ! Evaluate the Jacobian elements with respect to temperature by
     ! calling the RHS using d(ratdum) / dT
 
-    call rhs(y, rr % rates(2,:), rr % rates(1,:), state % jac(1:nspec,net_itemp), deriva)
+    call rhs(y, rr % rates(1,:), rr % rates(1,:), state % jac(1:nspec,net_itemp), deriva)
 
     call ener_gener_rate(state % jac(1:nspec,net_itemp), state % jac(net_ienuc,net_itemp))
     state % jac(net_ienuc,net_itemp) = state % jac(net_ienuc,net_itemp) - dsneutdt
@@ -740,10 +740,6 @@ contains
 
 !!!! START NEW STUFF HERE !!!!
 
-! triple alpha to c12
-    call rate_tripalf(tf,bden, &
-                      ratraw(ir3a),dratrawdt(ir3a),dratrawdd(ir3a), &
-                      ratraw(irg3a),dratrawdt(irg3a),dratrawdd(irg3a))
 ! p(p,e+nu)d
       call rate_pp(tf,bden, &
                    ratraw(irpp),dratrawdt(irpp),dratrawdd(irpp), &
@@ -2205,8 +2201,6 @@ contains
 
   end subroutine ener_gener_rate
 
-
-
   subroutine set_up_screening_factors()
     ! Compute and store the more expensive screening factors
 
@@ -2218,17 +2212,59 @@ contains
     ! note: we need to set these up in the same order that we evaluate the
     ! rates in actual_rhs.f90 (yes, it's ugly)
     
-	!TODO: Need to add the correct screening factors here
-	!call add_screening_factor(zion(ihe4),aion(ihe4),zion(ihe4),aion(ihe4))
-    !call add_screening_factor(zion(ihe4),aion(ihe4),4.0d0,8.0d0)
-    !call add_screening_factor(zion(ic12),aion(ic12),zion(ihe4),aion(ihe4))
-    !call add_screening_factor(zion(ic12),aion(ic12),zion(ic12),aion(ic12))
-    !call add_screening_factor(zion(ic12),aion(ic12),zion(io16),aion(io16))
-    !call add_screening_factor(zion(ic12),aion(ic12),zion(io16),aion(io16))
-    !call add_screening_factor(zion(io16),aion(io16),zion(ihe4),aion(ihe4))
-    !call add_screening_factor(zion(ine20),aion(ine20),zion(ihe4),aion(ihe4))
-    !call add_screening_factor(zion(img24),aion(img24),zion(ihe4),aion(ihe4))
-    !call add_screening_factor(20.0d0,40.0d0,zion(ihe4),aion(ihe4))
+	! TODO: Verify there are screening factors for non-ion related reactions.
+
+	! p(p,e+nu)d
+	! p(e-p,nu)d
+	! d(p,g)3he
+	! he3(p,e+nu)he4
+	! he3(he3,2p)he4
+	call add_screening_factor(zion(ihe3),aion(ihe3),zion(ihe3),aion(ihe3))
+	! 3he(4he,nu)7be
+	call add_screening_factor(zion(ihe3),aion(ihe3),zion(ihe4),aion(ihe4))
+	! 7be(e-,nu)7li
+	! 7be(p,g)8b
+	! 8b(p=>n)8be=>2 he4  positron decay (half-life = 0.77 sec)
+	! 7li(p,g)8be => 2a   and 7li(p,a)a
+	! c12 + p
+	! 13n(e+nu)13c
+	! 13c(p,g)14n
+	! 14n(p,g)15o
+	! 15o(e+nu)15n
+	! 15n(p,a)12c 
+	! 15n(p,g)16o
+	! 16o(p,g)17f
+	! 17f(e+nu)17o
+	! 17o(p,a)14n
+	! 17o(p,g)18f
+	! 18f(e+nu)18o
+	! 18o(p,a)15n
+	! 18o(p,g)19f
+	! 19f(p,a)16o
+	! 13n(p,g)14o
+	! 14o(e+nu)14n
+	! 14o(a,p)17f cf88 q = 1.191
+	call add_screening_factor(zion(io14),aion(io14),zion(ihe4),aion(ihe4))
+	! 17f(p,g)18ne
+	! 18ne(e+nu)18f
+	! 18f(p,a)15o
+	! triple alpha to c12
+	! c12(a,g)o16
+	call add_screening_factor(zion(ic12),aion(ic12),zion(ihe4),aion(ihe4))
+	! 16o(a,g)20ne
+	call add_screening_factor(zion(io16),aion(io16),zion(ihe4),aion(ihe4))
+	! 18ne(a,p)21na
+	call add_screening_factor(zion(ine18),aion(ine18),zion(ihe4),aion(ihe4))
+	! 19ne(p,g)20na
+	call add_screening_factor(zion(ine19),aion(ine19),zion(ihe4),aion(ihe4))
+	! 15o(a,g)19ne
+	call add_screening_factor(zion(io15),aion(io15),zion(ihe4),aion(ihe4))
+	! 44ti(a,p)47v
+	call add_screening_factor(22.0d0,44.0d0,zion(ihe4),aion(ihe4))
+	! 26si(a,p)29p
+	call add_screening_factor(14.0d0,26.0d0,zion(ihe4),aion(ihe4))
+	! 19ne(e+nu)19f
+	! 20ne(p,g)21na
 
   end subroutine set_up_screening_factors
 
