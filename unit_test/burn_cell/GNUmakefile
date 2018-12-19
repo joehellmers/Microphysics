@@ -18,8 +18,9 @@ EOS_DIR := helmholtz
 #NETWORK_DIR := subch
 #NETWORK_DIR := ignition_reaclib/URCA-simple
 NETWORK_DIR := pphotcno
+#NETWORK_DIR := aprox13
 
-INTEGRATOR_DIR := VODE
+INTEGRATOR_DIR := BS
 
 TEST_DIR := $(MICROPHYSICS_HOME)/unit_test/burn_cell
 

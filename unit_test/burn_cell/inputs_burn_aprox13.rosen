@@ -1,6 +1,6 @@
 &PROBIN
 
-  run_prefix = "react_aprox13_"
+  run_prefix = "react_aprox13_rosen_"
   
   small_temp = 1d5
   small_dens = 1d5
@@ -20,7 +20,7 @@
   atol_spec = 1.0d-9
   atol_enuc = 1.0d-6
   atol_temp = 1.0d-6
-  ode_method = 1
+  ode_method = 2
 /
 
 &cellparams

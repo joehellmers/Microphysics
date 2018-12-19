@@ -1,6 +1,6 @@
 &PROBIN
 
-  run_prefix = "react_aprox13_"
+  run_prefix = "react_aprox13_bs_"
   
   small_temp = 1d5
   small_dens = 1d5

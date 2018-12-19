@@ -34,6 +34,8 @@ contains
 
     implicit none
 
+	print *,"{JH} actual_rhs_init: Starting..."
+
     call rates_init()
 
     call set_up_screening_factors()
@@ -72,6 +74,8 @@ contains
     
     double precision :: scfac(nrates),  dscfacdt(nrates),  dscfacdd(nrates)
 
+	print *,"{JH} get_rates: Starting..."
+
     ! Get the data from the state
 
     rho  = state % rho
@@ -86,7 +90,7 @@ contains
     endif
 
     ! Do the screening here because the corrections depend on the composition
-    call screen_pphotcno(temp, rho, y,                 &
+    call screen_pphotcno(temp, rho, y,             &
                      ratraw, dratrawdt, dratrawdd, &
                      ratdum, dratdumdt, dratdumdd, &
                      scfac,  dscfacdt,  dscfacdd)
@@ -114,6 +118,8 @@ contains
     double precision alfa,beta,gama,delt
 
     double precision :: dtab(nrates)
+
+	print *,"{JH} pphotcnotab: Starting..."
 
     ! Set the density dependence array
 	dtab(irpp)    = bden
@@ -255,6 +261,8 @@ contains
 
     bden = 1.0d0
 
+	print *,"{JH} set_pphotcnorat: Starting..."
+
     do i = 1, tab_imax
 
        btemp = tab_tlo + dble(i-1) * tab_tstp
@@ -298,6 +306,8 @@ contains
 
     double precision :: rho, temp, abar, zbar
     double precision :: y(nspec)
+
+	print *,"{JH} actual_rhs: Starting..."
 
     ! Get the data from the state
 
@@ -354,6 +364,8 @@ contains
     double precision :: y(nspec)
 
     state % jac(:,:) = ZERO
+
+	print *,"{JH} actual_jac: Starting..."
 
     call get_rates(state, rr)
 
@@ -418,6 +430,8 @@ contains
     ! local variables
     integer          :: i
     double precision :: a(15)
+
+	print *,"{JH} rhs: Starting..."
 
     dydt(1:nspec) = ZERO
 
@@ -726,6 +740,8 @@ contains
     double precision :: ff1,dff1dt,dff1dd,ff2,dff2dt,dff2dd,tot,dtotdt,dtotdd,invtot
     type (tf_t)      :: tf
 
+	print *,"{JH} pphotcnorat: Starting...btemp=",btemp
+
     do i=1,nrates
        ratraw(i)    = ZERO
        dratrawdt(i) = ZERO
@@ -733,7 +749,6 @@ contains
     enddo
 
     if (btemp .lt. 1.0d6) return
-
 
     ! get the temperature factors
     call get_tfactors(btemp, tf)
@@ -951,7 +966,6 @@ contains
            ratraw(irne20pg),dratrawdt(irne20pg),dratrawdd(irne20pg), &
            rrate,drratedt,drratedd)
 
-
   end subroutine pphotcnorat
 
 
@@ -989,7 +1003,9 @@ contains
     type (plasma_state) :: pstate
     type (tf_t)         :: tf
 
-    ! initialize
+	print *,"{JH} screen_pphotcno: Starting..."	
+    
+	! initialize
     do i = 1, nrates
        ratdum(i)     = ratraw(i)
        dratdumdt(i)  = dratrawdt(i)
@@ -1309,6 +1325,8 @@ contains
 	scfac(irtiap)     = sc1a
 	dscfacdt(irtiap)  = sc1adt
 
+	print *,"{JH} screen_pphotcno: at end dratdumdt=",dratdumdt
+
   end subroutine screen_pphotcno
 
 
@@ -1332,7 +1350,8 @@ contains
 
     double precision :: b(20)
 
-
+	print *,"{JH} dfdy_isotopes_pphotcno: Starting..."
+	
 	!!! Hydrogen-1 Elements
 
     ! d(h1)/d(h1)
